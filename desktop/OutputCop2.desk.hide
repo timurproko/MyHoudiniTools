@@ -1,0 +1,10 @@
+fullscreen -1
+playbar -1
+split 0.611111 H {
+    split 0.449845 H {
+        pane pane1 -a 0 -C 1 -c 1 -l 0 -H /img/comp1/ -T IMG -m treecontrol
+        pane pane4 -a 0 -C 1 -c 1 -l 0 -H /out/ -T ROP -m neteditor
+    }
+    pane pane2 -a 0 -C 1 -c 1 -l 10 -H /out/ -T ROP -m parmeditor
+}
+parmeditor -T 0.25 -w 0 pane2

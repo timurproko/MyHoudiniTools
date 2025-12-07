@@ -1,0 +1,4 @@
+hidden_tools := "";
+show_labels := 1;
+slider_size := 1;
+tools := "tween,blendtoneighbor,blendtoframe,easeinout,blendtoease,pullpush,noisewave,blendtosnapshot,timeoffsetter,timeoffsetterstagger,reduceresample,smoothrough";

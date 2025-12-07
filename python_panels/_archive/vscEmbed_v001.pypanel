@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pythonPanelDocument>
+<!-- This file contains definitions of Python interfaces and the
+interfaces menu.  It should not be hand-edited when it is being
+used by the application.  Note, that two definitions of the
+same interface or of the interfaces menu are not allowed
+in a single file. -->
+<interface name="vscEmbed" label="Visual Studio Code" icon="MISC_python" showNetworkNavigationBar="false" help_url="">
+<script>
+<![CDATA[
+import hou
+from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2.QtCore import Qt 
+import ctypes
+
+user32 = ctypes.windll.user32
+label = 'Visual Studio Code'
+
+GWL_HWNDPARENT = -8  
+GWL_STYLE = -16  
+GWL_EXSTYLE = -20  
+WS_CHILD = 0x40000000
+WS_OVERLAPPED = 0x00000000
+SWP_NOSIZE = 0x0001
+SWP_NOMOVE = 0x0002
+SWP_SHOWWINDOW = 0x0040
+HWND_TOPMOST = -1
+EVENT_OBJECT_NAMECHANGE = 0x800C
+EVENT_SYSTEM_DIALOGSTART = 0x0010
+WINEVENT_OUTOFCONTEXT = 0x0000
+EVENT_SYSTEM_FOREGROUND = 0x0003
+WINEVENT_SKIPOWNPROCESS = 0x0002
+
+SetWindowLongPtr = user32.SetWindowLongPtrW
+GetWindowLongPtr =user32.GetWindowLongPtrW
+SetParent = user32.SetParent
+GetParent = user32.GetParent
+ShowWindow = user32.ShowWindow
+EnumWindows = user32.EnumWindows
+EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int))
+GetWindowText = user32.GetWindowTextW
+GetWindowTextLength = user32.GetWindowTextLengthW
+IsWindowVisible = user32.IsWindowVisible
+WinEventProcType = ctypes.WINFUNCTYPE(None, ctypes.wintypes.HANDLE, ctypes.wintypes.DWORD, ctypes.wintypes.HWND, ctypes.wintypes.LONG, ctypes.wintypes.LONG, ctypes.wintypes.DWORD, ctypes.wintypes.DWORD)
+
+_AppEmbed=None 
+
+def event_callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime):
+    if event == EVENT_OBJECT_NAMECHANGE:
+        buffer_length = 256
+        buffer = ctypes.create_unicode_buffer(buffer_length)
+        ctypes.windll.user32.GetWindowTextW(hwnd, buffer, buffer_length)
+
+        if _AppEmbed and buffer.value!="":            
+            if _AppEmbed.src_hwnd ==  hwnd :
+                _AppEmbed.paneTab.setLabel(label)
+
+WinEventProc = WinEventProcType(event_callback)            
+user32.SetWinEventHook.restype = ctypes.wintypes.HANDLE
+
+class AppEmbed(QtWidgets.QWidget):
+    def __init__(self, kwargs):
+        self.qw=QtWidgets.QWidget.__init__(self)
+        self.paneTab = kwargs['paneTab']
+        self.paneTab.setLabel(label)
+        self.src_hwnd=False
+        self.embed_window=False
+        self.embed_widget=False       
+        self.main_window=QtGui.QWindow.fromWinId(hou.ui.mainQtWindow().winId())
+        self.meta={}
+        self.meta["orig_rect"] = ctypes.wintypes.RECT()
+        self.hook = user32.SetWinEventHook(EVENT_OBJECT_NAMECHANGE, EVENT_OBJECT_NAMECHANGE, 0,  WinEventProc, 0, 0, 0)
+        self.captureVSCWindow()
+        
+    def getWindows(self):
+        data = []
+        def foreach_window(hwnd, lParam):
+            if IsWindowVisible(hwnd):
+                length = GetWindowTextLength(hwnd)
+                buff = ctypes.create_unicode_buffer(length + 1)
+                GetWindowText(hwnd, buff, length + 1)
+                if buff.value:
+                    data.append([f"{buff.value}",  ctypes.addressof(hwnd.contents)])
+            return True
+        EnumWindows(EnumWindowsProc(foreach_window), 0)
+        return data
+
+    def captureVSCWindow(self):
+        windows = self.getWindows()
+        for window in windows:
+            if label in window[0]:
+                self.captureWindow(window[1], window[0])
+                break
+
+    def storeMeta(self, hwnd):
+        ctypes.windll.user32.GetWindowRect(hwnd, ctypes.pointer(self.meta["orig_rect"]))
+        self.meta["orig_parent"]  = GetParent(hwnd) 
+        self.meta["orig_style"]   = GetWindowLongPtr(hwnd, GWL_STYLE) 
+        self.meta["orig_exstyle"] = GetWindowLongPtr(self.src_hwnd, GWL_EXSTYLE) 
+
+    def restoreMeta(self, hwnd):
+        SetParent(hwnd, self.meta["orig_parent"])
+        QtGui.QWindow.fromWinId(hwnd).setPosition( self.meta["orig_rect"].left, self.meta["orig_rect"].top )
+        QtGui.QWindow.fromWinId(hwnd).resize( self.meta["orig_rect"].right - self.meta["orig_rect"].left, self.meta["orig_rect"].bottom - self.meta["orig_rect"].top )
+        SetWindowLongPtr(hwnd, GWL_STYLE, self.meta["orig_style"]) 
+        SetWindowLongPtr(hwnd, GWL_EXSTYLE, self.meta["orig_exstyle"]) 
+        #QtGui.QWindow.fromWinId(hwnd).setFlags(self.meta["orig_flags"])
+
+    def releaseWindow(self):
+        if self.src_hwnd:
+            self.embed_window.setParent(None)
+            self.restoreMeta(self.src_hwnd)
+            ShowWindow(self.src_hwnd,6)
+            ShowWindow(self.src_hwnd,9)
+            self.src_hwnd = False
+            try:
+                self.paneTab.setLabel(label)
+            except:
+                pass
+
+    def captureWindow(self, src_hwnd, title=False):
+        self.src_hwnd = src_hwnd 
+        self.storeMeta(self.src_hwnd)
+        self.style =  GetWindowLongPtr(self.src_hwnd, GWL_STYLE) & WS_OVERLAPPED & WS_CHILD
+        self.exstyle = GetWindowLongPtr(self.src_hwnd, GWL_EXSTYLE) 
+        SetParent(self.src_hwnd, hou.ui.mainQtWindow().winId());
+        self.embed_window = QtGui.QWindow.fromWinId(self.src_hwnd)
+        self.embed_widget = QtWidgets.QWidget.createWindowContainer(self.embed_window)
+        SetWindowLongPtr(self.src_hwnd, GWL_STYLE, self.style) 
+        self.embed_widget.setParent(self)
+        self.embed_widget.show()
+        if title:
+            self.paneTab.setLabel(label)
+        self.resizeEvent()
+        self.main_window.requestUpdate()
+
+    def closeEvent(self, event):
+        user32.UnhookWinEvent(self.hook)
+        self.releaseWindow()
+
+    def resizeEvent(self, event=None):
+        if self.embed_widget:
+            paneSize=[self.size().width(),  self.size().height()]
+            paneSize[1]=max(0,paneSize[1])
+            self.embed_widget.resize(paneSize[0], paneSize[1])    
+            self.embed_widget.move(0,0) 
+
+def onCreateInterface():
+    global _AppEmbed
+    _AppEmbed=AppEmbed(kwargs)
+    return _AppEmbed
+]]>
+</script>
+<includeInPaneTabMenu menu_position="0" create_separator="false"/>
+<includeInToolbarMenu menu_position="415" create_separator="false"/>
+<help><![CDATA[]]></help>
+</interface>
+</pythonPanelDocument>

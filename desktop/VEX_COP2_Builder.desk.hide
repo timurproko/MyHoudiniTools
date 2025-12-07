@@ -1,0 +1,15 @@
+fullscreen -1
+playbar -1
+split 0.504823 V {
+    split 0.439082 H {
+        pane pane1 -a 0 -C 1 -c 1 -l 10 -H /img/comp1/ -T COP2 -m imageview
+        split 0.46229 H {
+            pane pane3 -a 0 -C 1 -c 1 -l 1 -H /img/comp1/ -T COP2 -m neteditor
+            pane pane5 -a 0 -C 1 -c 1 -l 10 -H /img/comp1/ -T COP2 -m parmeditor
+        }
+    }
+    split 0.695 H {
+        pane pane2 -a 0 -C 1 -c 1 -l 2 -H /vex/ -T VOPNET -m neteditor
+        pane pane4 -a 0 -C 1 -c 1 -l 2 -H /vex/ -T VOPNET -m parmeditor
+    }
+}

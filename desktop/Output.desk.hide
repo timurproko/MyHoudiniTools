@@ -1,0 +1,38 @@
+fullscreen -1
+playbar -1
+root {
+    split 0.642045 H {
+        split 0.297872 V {
+            tabs 0 {
+                pane panetab1 -a 0 -l 1 -H /out/ -T ROP -m iprviewer
+                pane panetab2 -a 0 -l 10 -H /obj/ -T OBJ -m sceneview
+            }
+            split 0.5 H {
+                tabs 0 {
+                    pane panetab3 -a 0 -l 1 -H /out/ -T ROP -m renderview
+                }
+                tabs 0 {
+                    pane panetab4 -a 0 -l 1 -H /out/ -T ROP -m takelist
+                }
+            }
+        }
+        split 0.472138 V {
+            tabs 0 {
+                pane panetab5 -a 0 -l 10 -H /obj/ -T OBJ -m parmeditor
+            }
+            tabs 0 {
+                pane panetab6 -a 0 -l 10 -H /obj/ -T OBJ -m neteditor
+                pane panetab7 -a 0 -l 0 -H /obj/ -T OBJ -m treecontrol
+                pane panetab8 -a 0 -l 0 -H /obj/ -T OBJ -m materialpalette
+            }
+        }
+    }
+}
+shelfdock -o 1 -l icon_and_text add shelf_set_1 shelf_set_2
+iprview panetab1
+viewerstow -x open -b stow -l stow -m hide -d open Output.panetab2.world
+vieweroption -a 2 Output.panetab2.world
+ropview -c 1 panetab3
+takelist -w 1 -G 0.5 panetab4
+parmeditor -T 0.25 -w 0 panetab5
+treecontrol -a 0 -i 1 -f 0 -O 0 -S 0 -D 0 -P 0 -H 0 -V 0 -C 0 -I 0 -R 0 panetab7

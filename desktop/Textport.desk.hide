@@ -1,0 +1,10 @@
+fullscreen   -1
+playbarshown 1
+playbar      -1
+root {
+    tabs 0 1 {
+	pane panetab1 -a 0 -l 10 -H /obj/ -T OBJ -m python
+        pane panetab2 -a 0 -l 10 -H /obj/ -T OBJ -m textport
+    }
+}
+shelfdock -o 0 -l icon_and_text add shelf_set_1 shelf_set_2

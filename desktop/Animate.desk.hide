@@ -1,0 +1,56 @@
+fullscreen   -1
+playbarshown 1
+playbar      2
+shelf        -1
+menubar      -1
+statusbar    -1
+radial menu set create
+root {
+    split 0.107059 H {
+        tabs 0 1 {
+            pane panetab4 -a 0 -l 10 -H /obj/ -T OBJ -m listchans
+            pane panetab6 -a 0 -l 0 -H /obj/ -T OBJ -m treecontrol
+        }
+        split 0.716042 H {
+            split 0.361493 V {
+                tabs 0 1 {
+                    pane panetab1 -a 0 -l 10 -H /obj/ -T OBJ -m sceneview
+                    pane panetab2 -a 0 -l 10 -H /obj/ -T OBJ -m iprviewer
+                }
+                tabs 0 1 {
+                    pane panetab9 -a 0 -l 10 -H /obj/ -T OBJ -m chaneditor
+                    pane panetab12 -a 0 -l 0 -H /obj/ -T OBJ -m neteditor
+                }
+            }
+            split 0.5 V {
+                tabs 0 1 {
+                    pane panetab8 -a 0 -l 10 -H /obj/ -T OBJ -m parmeditor
+                }
+                tabs 1 1 {
+                    pane panetab11 -a 0 -l 0 -H /obj/ -T OBJ -m neteditor
+                    pane panetab10 -a 0 -l 10 -H /obj/ -T OBJ -m treecontrol
+                    pane panetab13 -a 0 -l 10 -H /obj/ -T OBJ -m pythonpanel
+                    pane panetab3 -a 0 -l 0 -H /obj/ -T OBJ -m pythonpanel
+                }
+            }
+        }
+    }
+}
+shelfdock -o 1 -l icon_and_text -G "0.50 0.50" add animation lights_and_objects
+chanlist -G 0.5 -P 0.385144 -L 0.5 -x 1 -t 0 -p 1 -k 0 -l 0 panetab4
+parmlist -M display -D 1 -s 0 -m 0 -V 1 -f 0 -l 1 -h 1 panetab4
+treecontrol -a 0 -h 0 -i 1 -f 0 -O 0 -S 0 -D 0 -P 0 -H 0 -V 0 -C 0 -I 0 -R 0 panetab6
+viewerstow -x open -b stow -l open -m hide -c hide -d open Animate.panetab1.world
+vieweroption -a 2 Animate.panetab1.world
+viewlayout -d h 1 2 Animate.panetab1.world
+viewtype -t ortho_right Animate.panetab1.world.`vpname("Animate.panetab1.world",4)`
+viewtype -t ortho_front Animate.panetab1.world.`vpname("Animate.panetab1.world",3)`
+viewtype -t ortho_right Animate.panetab1.world.`vpname("Animate.panetab1.world",1)`
+viewtype -t perspective Animate.panetab1.world.`vpname("Animate.panetab1.world",2)`
+iprview panetab2
+networkeditor -p '{\n	"obj:listmode":"0",\n	"showchilddep":"1",\n	"showdep":"0",\n	"perfstatname":"Time",\n	"grouplistsplit":"0.75",\n	"showperfstats":"1",\n	"showtree":"0",\n	"showtypesidebar":"0",\n	"showparmdialogmax":"1",\n	"treesplit":"0.25",\n	"palettesize":"150 150",\n	"typesidebarsplit":"0.25",\n	"palettemode":"0",\n	"showgrouplist":"0",\n	"gridystep":"1.0",\n	"backgroundimageediting":"0",\n	"backgroundimagebrightness":"1.0",\n	"gridmode":"0",\n	"overviewbounds":"0.000000 0.000000 732.600000 165.000000",\n	"showtimedep":"0",\n	"overviewmode":"2",\n	"showmenu":"1",\n	"gridxstep":"2.0",\n	"showparmdialog":"0"\n}\n' panetab12
+parmeditor -T 0.25 -w 0 panetab8
+networkeditor -p '{\n	"obj:listmode":"0",\n	"showchilddep":"1",\n	"showdep":"0",\n	"perfstatname":"Time",\n	"grouplistsplit":"0.75",\n	"showperfstats":"1",\n	"showtree":"0",\n	"showtypesidebar":"0",\n	"showparmdialogmax":"1",\n	"treesplit":"0.25",\n	"palettesize":"150 150",\n	"typesidebarsplit":"0.25",\n	"palettemode":"0",\n	"showgrouplist":"0",\n	"gridystep":"1.0",\n	"backgroundimageediting":"0",\n	"backgroundimagebrightness":"1.0",\n	"gridmode":"0",\n	"overviewbounds":"0.000000 0.000000 286.200000 242.700000",\n	"showtimedep":"0",\n	"overviewmode":"2",\n	"showmenu":"1",\n	"gridxstep":"2.0",\n	"showparmdialog":"0"\n}\n' panetab11
+treecontrol -a 0 -h 0 -i 1 -f 0 -O 0 -S 0 -D 0 -P 0 -H 0 -V 0 -C 0 -I 0 -R 0 panetab10
+pythonpanel -s on -t on -n sesi_character_picker panetab13
+pythonpanel -s on -t off -n sesi_pose_library panetab3

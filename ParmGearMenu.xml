@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<menuDocument>
+    <menu>
+    <subMenu id="asset_bar_submenu">
+    <label>Asset Definition Toolbar</label>
+    <insertBefore />
+<scriptMenuStripRadio>
+    <variableName>asset_bar_val</variableName>
+
+    <scriptRadioItem id="h.asset_bar_all">
+        <label>Show Always</label>
+        <variableValue>0</variableValue>
+        <scriptCode>
+<![CDATA[
+import mytools
+mytools.show_asset_def_toolbar()
+]]>
+        </scriptCode>
+    </scriptRadioItem>
+        <scriptRadioItem id="h.asset_bar_multi">
+        <label>Show When Needed</label>
+        <variableValue>1</variableValue>
+        <scriptCode>
+<![CDATA[
+import mytools
+mytools.show_asset_def_toolbar_when_needed()
+]]>
+        </scriptCode>
+    </scriptRadioItem>
+    <scriptRadioItem id="h.asset_bar_current">
+        <label>Show Current Definition</label>
+        <variableValue>2</variableValue>
+
+        <scriptCode>
+<![CDATA[
+import mytools
+mytools.show_asset_def_toolbar_current_def()
+]]>
+        </scriptCode>
+    </scriptRadioItem>
+    <scriptRadioItem id="h.asset_bar_hide">
+        <label>Hide</label>
+        <variableValue>3</variableValue>
+        <scriptCode>
+<![CDATA[
+import mytools
+mytools.hide_asset_def_toolbar()
+]]>
+        </scriptCode>
+    </scriptRadioItem>
+</scriptMenuStripRadio>
+    </subMenu>
+</menu>
+</menuDocument>

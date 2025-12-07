@@ -1,0 +1,28 @@
+fullscreen -1
+playbar -1
+root {
+    split 0.607527 V {
+        split 0.69 H {
+            split 0.5 H {
+                tabs 0 {
+                    pane pane5 -a 0 -l 1 -H /shop/ -T SHOP -m neteditor
+                }
+                tabs 0 {
+                    pane pane2 -a 0 -l 10 -H /vex/ -T VOPNET -m parmeditor
+                }
+            }
+            tabs 0 {
+                pane pane1 -a 0 -l 10 -H /obj/ -T OBJ -m sceneview
+            }
+        }
+        tabs 0 {
+            pane pane4 -a 0 -l 1 -H /shop/ -T SHOP -m neteditor
+            pane pane -a 0 -l 0 -H /obj/ -T OBJ -m treecontrol
+        }
+    }
+}
+shelfdock -o 1 -l icon_and_text
+parmeditor -T 0.25 -w 0 pane2
+viewerstow -x stow -b open -l open -m hide -d stow VEX_Builder.pane1.world
+vieweroption -a 2 VEX_Builder.pane1.world
+treecontrol -a 0 -i 1 -f 0 -O 0 -S 0 -D 0 -P 0 -H 0 -V 0 -C 0 -I 0 -R 0 pane

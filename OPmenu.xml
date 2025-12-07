@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<menuDocument>
+    <menu>
+
+<actionItem id="opmenu.create_parms">
+<label>Promote All Parameters</label>
+<insertBefore />
+<context>
+<expression>
+<![CDATA[
+node = kwargs["node"]
+
+if node.type().category().name() != "Vop":
+    return False
+
+if len(node.inputNames()) <= len(node.inputConnections()):
+    return False
+
+return True
+]]>
+</expression>
+</context>
+</actionItem>
+
+<actionItem id="opmenu.create_consts">
+<label>All Constants</label>
+<insertAfter>opmenu.create_parms</insertAfter>
+<context>
+<expression>
+<![CDATA[
+node = kwargs["node"]
+
+if node.type().category().name() != "Vop":
+    return False
+
+if len(node.inputNames()) <= len(node.inputConnections()):
+    return False
+
+return True
+]]>
+</expression>
+</context>
+</actionItem>
+
+        <subMenu id="ctrl_menu">
+        <label>Parameters Control</label>
+<context>
+<expression>
+<![CDATA[
+node = kwargs["node"]
+if not isinstance(node, hou.SopNode) and not isinstance(node, hou.LopNode):
+    return False
+if node.type().name() != "null":
+    return False
+return True
+]]>
+</expression>
+</context>
+<insertBefore>opmenu.flags_menu</insertBefore>
+
+<scriptItem id="ctrl_node_set">
+<label>Set as Control Node</label>
+<scriptCode>
+<![CDATA[
+import parms
+parms.ctrl_node_set(kwargs)
+]]>
+</scriptCode>
+</scriptItem>
+
+<scriptItem id="ctrl_open_tab">
+<label>Open Parameters Tab</label>
+<expression>
+<![CDATA[
+if hou.getenv("ctrl_node"):
+    return True
+else:
+    return False
+]]>
+</expression>
+<scriptCode>
+<![CDATA[
+import parms
+parms.ctrl_open_tab(kwargs)
+]]>
+</scriptCode>
+</scriptItem>
+
+<scriptItem id = "ctrl_names_shorten">
+<label>Shorten Names</label>
+<expression>
+<![CDATA[
+if hou.getenv("ctrl_node"):
+    return True
+else:
+    return False
+]]>
+</expression>
+<scriptCode>
+<![CDATA[
+def runLater():
+    import parms
+    parms.parmUtils.renameParms(kwargs)
+import hdefereval
+hdefereval.executeDeferred(runLater)
+]]>
+</scriptCode>
+</scriptItem>
+        </subMenu>
+
+        <subMenu id="presets_menu">
+        <label>Versions Control</label>
+<insertAfter>ctrl_menu</insertAfter>
+
+<scriptItem id="node_parms_to_json">
+<label>Export Parms to Json</label>
+<scriptCode>
+<![CDATA[
+import presets
+presets.node_parms_to_json(nodes=kwargs["items"])
+]]>
+</scriptCode>
+</scriptItem>
+
+<scriptItem id="node_parms_from_json">
+<label>Import Parms from Json</label>
+<scriptCode>
+<![CDATA[
+import presets
+presets.node_parms_from_json(nodes=kwargs["items"])
+]]>
+</scriptCode>
+</scriptItem>
+        </subMenu>
+
+        <subMenu id="rizom_menu">
+        <label>RizomUV Bridge</label>
+        <insertAfter>presets_menu</insertAfter>
+
+            <context>
+            <expression>
+<![CDATA[
+import os
+if os.getenv('RIZOMUV_PATH') == None:
+    return False
+node = kwargs["node"]
+if type(node) != hou.SopNode:
+    return False
+return True
+]]>
+                </expression>
+            </context>
+                <scriptMenuStripDynamic id="rizom-menu">
+        <contentsScriptCode>
+<![CDATA[
+menu_items = ["send", "Send...", "send_no_uv", "Send (Clear UVs)...", "get", "Get", "auto", "Automatic Unwrap...", "pass_group", "Send Group Selection"]
+return menu_items
+
+]]>
+        </contentsScriptCode>
+        <scriptCode>
+<![CDATA[
+import tempfile, os, hou
+import rizomuv
+
+selected_token = kwargs["selectedtoken"]
+selected_label = kwargs["selectedlabel"]
+
+# Change the rizomPath to your location
+rizomPath = os.getenv('RIZOMUV_PATH')
+exportFile = tempfile.gettempdir() + os.sep + "rizom_temp.obj"
+exportFile = os.path.normpath(exportFile)
+exportFile = exportFile.replace(os.sep, "/")
+
+if selected_token == 'send':
+    rizomuv.sendToRizom(rizomPath = rizomPath, exportFile = exportFile, nodes=kwargs["items"])
+
+if selected_token == 'send_no_uv':
+    rizomuv.sendToRizomClearUvs(rizomPath = rizomPath, exportFile = exportFile, nodes=kwargs["items"])
+
+if selected_token == 'get':
+    rizomuv.getFromRizom(nodes=kwargs["items"], rizomPath = rizomPath, exportFile = exportFile)
+
+if selected_token == 'auto':
+    rizomuv.automaticRoundtrip(rizomPath = rizomPath, exportFile = exportFile, nodes=kwargs["items"])
+
+if selected_token == 'pass_group':
+    rizomuv.passGroups(rizomPath = rizomPath, node = kwargs["node"])
+]]>
+        </scriptCode>
+
+    </scriptMenuStripDynamic>
+        </subMenu>
+	</menu>
+</menuDocument>

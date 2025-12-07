@@ -1,0 +1,74 @@
+fullscreen   -1
+playbarshown 1
+playbar      -1
+shelf        -1
+menubar      -1
+statusbar    -1
+radial menu set create
+root {
+    split 0.683772 H {
+        split 0.65981 H {
+            split 0.190508 H {
+                tabs 0 1 {
+                    pane panetab14 -a 0 -l 10 -H /out/ -T ROP -m treecontrol
+                }
+                split 0.367655 V {
+                    tabs 1 1 {
+                        pane panetab4 -a 0 -l 10 -H /obj/ -T OBJ -m sceneview
+                        pane panetab8 -a 0 -l 10 -H /out/ -T ROP -m iprviewer
+                    }
+                    tabs 0 1 {
+                        pane panetab5 -a 0 -l 10 -H /out/ -T ROP -m materialpalette
+                        pane panetab9 -a 0 -l 10 -H /out/ -T ROP -m renderview
+                        pane panetab15 -a 0 -l 0 -H /obj/ -T OBJ -m textport
+                        pane panetab16 -a 0 -l 0 -H /obj/ -T OBJ -m python
+                    }
+                }
+            }
+            split 0.5 V {
+                tabs 0 1 {
+                    pane panetab1 -a 0 -l 10 -H /out/ -T ROP -m parmeditor
+                    pane panetab10 -a 0 -l 0 -H /obj/ -T OBJ -m parmsheet
+                    pane panetab12 -a 0 -l 10 -H /out/ -T ROP -m details
+                }
+                tabs 0 1 {
+                    pane panetab7 -a 0 -l 0 -H /mat/ -T VOP -m neteditor
+                    pane panetab11 -a 0 -l 0 -H /out/ -T ROP -m neteditor
+                    pane panetab13 -a 0 -l 0 -H /obj/ -T OBJ -m neteditor
+                }
+            }
+        }
+        split 0.37493 V {
+            split 0.516014 V {
+                tabs 0 1 {
+                    pane panetab3 -a 0 -l 0 -H /out/ -T ROP -m datatree
+                }
+                tabs 0 1 {
+                    pane panetab6 -a 0 -l 0 -H /out/ -T ROP -m datatree
+                }
+            }
+            tabs 0 1 {
+                pane panetab2 -a 0 -l 0 -H /obj/ -T OBJ -m datatree
+            }
+        }
+    }
+}
+shelfdock -o 1 -l icon_and_text -G 0.50 add lights_and_objects
+viewerstow -x open -b stow -l stow -m hide -c hide -d open LookDev.panetab4.world
+vieweroption -a 2 LookDev.panetab4.world
+viewlayout -s 2 LookDev.panetab4.world
+viewtype -t ortho_right LookDev.panetab4.world.`vpname("LookDev.panetab4.world",4)`
+viewtype -t ortho_front LookDev.panetab4.world.`vpname("LookDev.panetab4.world",3)`
+viewtype -t ortho_top LookDev.panetab4.world.`vpname("LookDev.panetab4.world",1)`
+viewtype -t perspective LookDev.panetab4.world.`vpname("LookDev.panetab4.world",2)`
+iprview panetab8
+parmeditor -T 0.25 -w 0 panetab1
+parmsheet -w 1 -T 0.33 -P 1 -F 1 -C 0 -n 1 -e 0 panetab10
+networkeditor -p '{\n	"vop:listmode":"0",\n	"obj:listmode":"0",\n	"shop:listmode":"0",\n	"showchilddep":"1",\n	"showdep":"0",\n	"perfstatname":"Time",\n	"grouplistsplit":"0.75",\n	"showperfstats":"1",\n	"showtree":"0",\n	"showtypesidebar":"0",\n	"showparmdialogmax":"1",\n	"treesplit":"0.25",\n	"palettesize":"150 150",\n	"typesidebarsplit":"0.25",\n	"palettemode":"0",\n	"showgrouplist":"0",\n	"gridystep":"1.0",\n	"backgroundimageediting":"0",\n	"backgroundimagebrightness":"1.0",\n	"gridmode":"0",\n	"overviewbounds":"0.000000 0.000000 263.100000 230.400000",\n	"showtimedep":"0",\n	"overviewmode":"2",\n	"showmenu":"1",\n	"gridxstep":"2.0",\n	"showparmdialog":"0"\n}\n' panetab7
+networkeditor -p '{\n	"obj:listmode":"0",\n	"out:listmode":"0",\n	"showchilddep":"1",\n	"showdep":"0",\n	"perfstatname":"Time",\n	"grouplistsplit":"0.75",\n	"showperfstats":"1",\n	"showtree":"0",\n	"showtypesidebar":"0",\n	"showparmdialogmax":"1",\n	"treesplit":"0.25",\n	"palettesize":"150 150",\n	"typesidebarsplit":"0.25",\n	"palettemode":"0",\n	"showgrouplist":"0",\n	"gridystep":"1.0",\n	"backgroundimageediting":"0",\n	"backgroundimagebrightness":"1.0",\n	"gridmode":"0",\n	"overviewbounds":"0.000000 0.000000 263.100000 230.400000",\n	"showtimedep":"0",\n	"overviewmode":"2",\n	"showmenu":"1",\n	"gridxstep":"2.0",\n	"showparmdialog":"0"\n}\n' panetab11
+networkeditor -p '{\n	"obj:listmode":"0",\n	"showchilddep":"1",\n	"showdep":"0",\n	"perfstatname":"Time",\n	"grouplistsplit":"0.75",\n	"showperfstats":"1",\n	"showtree":"0",\n	"showtypesidebar":"0",\n	"showparmdialogmax":"1",\n	"treesplit":"0.25",\n	"palettesize":"150 150",\n	"typesidebarsplit":"0.25",\n	"palettemode":"0",\n	"showgrouplist":"0",\n	"gridystep":"1.0",\n	"backgroundimageediting":"0",\n	"backgroundimagebrightness":"1.0",\n	"gridmode":"0",\n	"overviewbounds":"0.000000 0.000000 263.100000 230.400000",\n	"showtimedep":"0",\n	"overviewmode":"2",\n	"showmenu":"1",\n	"gridxstep":"2.0",\n	"showparmdialog":"0"\n}\n' panetab13
+datatree -p "Light Bank" -D "{  \"follow_selection\":true } " panetab3
+datatree -p "Object Appearance" -D "{  \"follow_selection\":true } " panetab6
+datatree -p "Material Style Sheets" -D "{  \"use_full_shop_paths\":false } " panetab2
+treecontrol -a 0 -h 0 -i 1 -f 0 -O 0 -S 0 -D 0 -P 0 -H 0 -V 0 -C 0 -I 0 -R 0 panetab14
+ropview -c 1 panetab9

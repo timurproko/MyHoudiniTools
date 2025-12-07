@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<menuDocument>
+        <menu>
+                <scriptMenuStripDynamic id="my_desktop_strip">
+                <insertAtIndex>0</insertAtIndex>
+                <contentsScriptCode>
+<![CDATA[
+import hou
+menu_items = [name for desktop in hou.ui.desktops() for name in (desktop.name(), desktop.name())]
+return menu_items
+]]>
+                </contentsScriptCode>
+                
+                <scriptCode>
+<![CDATA[
+import hou, mytools
+selected_desktop = kwargs["selectedtoken"]
+desktops_dict = {desktop.name(): desktop for desktop in hou.ui.desktops()}
+desktop_names = list(desktops_dict.keys())
+current_desktop = hou.ui.curDesktop()
+current_desktop_name = current_desktop.name()
+if selected_desktop in desktops_dict and selected_desktop != current_desktop_name:
+        desktops_dict[selected_desktop].setAsCurrent()
+        mytools.toggle_stowbars(1)
+        mytools.toggle_stowbars(0)
+        mytools.update_keymap()
+]]>
+                </scriptCode>
+                </scriptMenuStripDynamic>
+                <removeItem id="desktop_strip"/>
+
+</menu>
+</menuDocument>
+
+
+
+                <!-- <scriptItem id="reload_cur_desktop">
+                <label>Reload Current Desktop</label>
+                <insertAfter>‹h.save_desktops</insertAfter> -->
+<!-- <scriptCode>
+<![CDATA[
+import mytools, hdefereval
+def showStowbars():
+        mytools.toggle_stowbars(1)
+hdefereval.executeDeferred(showStowbars)
+
+def hideStowbars():
+        mytools.toggle_stowbars(0)
+hdefereval.executeDeferred(hideStowbars)
+
+mytools.update_keymap()
+
+]]>
+</scriptCode>
+                </scriptItem> -->

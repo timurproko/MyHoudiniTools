@@ -1,0 +1,14 @@
+groupexpression/snippet
+    [tproko] Curve Start Points
+    f@curveu==0
+
+attribwrangle/snippet
+    [tproko] Generate Phyllotaxis
+    int num = i@numpt;
+    float u = float(i@ptnum)/(num-1);
+    f@u = u;
+
+    float x = sin(radians(137.5)*i@ptnum)*u;
+    float z = cos(radians(137.5)*i@ptnum)*u;
+
+    v@P = set(x,0,z);
