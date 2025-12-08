@@ -22,10 +22,9 @@ class parmUtils():
         self.parm_node = self.parm_inst.node()
         self.parm_tuple = self.parm_inst.tuple()
         self.parm_group = self.parm_node.parmTemplateGroup()
-        self._parm = self.parm_tuple.parmTemplate()  # original parm
+        self._parm = self.parm_tuple.parmTemplate()
 
     @property
-    # node on witch set referenced parms
     def envNode_parm(self) -> Optional[str]:
         env = hou.getenv("ctrl_node")
         if env:
@@ -44,7 +43,6 @@ class parmUtils():
         return "ch"
 
     @property
-    # check if the active parm node is an hda, if is returns hda group
     def hdaGroup(self) -> Optional[hou.ParmTemplateGroup]:
         if self.envNode_parm.type().definition():
             return self.envNode_parm.type().definition().parmTemplateGroup()
@@ -56,7 +54,6 @@ class parmUtils():
         return self.parm_node.relativePathTo(self.envNode_parm)
 
     @staticmethod
-    #retuns number of nodes matched by re expression in a provided network path
     def nodeCountMatch(node_path: str, re_expr: str) -> int:
         mat_net = hou.node(node_path)
         all_contets = mat_net.children()
@@ -66,7 +63,6 @@ class parmUtils():
         return len(valid_nodes)
 
     @staticmethod
-    # combines both the spare parms and definition parms
     def allNodeParms(node: hou.Node) -> Iterable[str]:
         to_check = [node.parmTemplateGroup(), ]
         node_type = node.type()
@@ -89,14 +85,12 @@ class parmUtils():
             network_editor.setCurrentNode(node_obj)
             network_editor.homeToSelection()
 
-    # using regular expressions, find parm referenced, if parm doesn't exist generate spare parm
     @staticmethod
     def createSpareParmFromExpression(parms: Tuple, parm_type: hou.ParmTemplate, min: int = 1, max: int = 10) -> None:
         re_expr = re.compile(
             r"(?P<ch_type>chs?)\((?:'|\")(?P<parm_name>[A-Za-z0-9_ ]+)(?:'|\")\)")
         for parm in parms:
             if not parm.getReferencedParm() != parm:
-                # get expression parm name
                 parm_temp = parm.parmTemplate()
                 parm_expr = None
                 node = parm.node()
@@ -122,7 +116,6 @@ class parmUtils():
                 else:
                     raise HoudiniError("Parm is controlled by some other parm")
 
-    # invalid parm schemes objects for parm conversion
     @staticmethod
     def invalidSchemes() -> Generator:
         schemes = ("XYWH", "BeginEnd", "StartEnd", "MinMax", "MaxMin")
@@ -141,7 +134,6 @@ class parmUtils():
                 if check not in parm_names:
                     base_parm.setName(check)
                     break
-        # to not throw an error when user creates references from unsupported parms, convert parm to supported
         if base_parm.namingScheme() in parmUtils.invalidSchemes():
             base_parm.setNamingScheme(hou.parmNamingScheme.Base1)
             
@@ -149,10 +141,8 @@ class parmUtils():
         return base_parm
 
     def createRelativeReference(self, assign_to_definition: bool = True) -> None:
-        # only wrks on non-multiparms and if parm node is set up
         if self.envNode_parm:
             if not self.parm_inst.isMultiParmInstance():
-                # if node is an hda, give option to add parm to hda definition or spare parm
                 if self.hdaGroup:
                     if assign_to_definition:
                         set_on = self.envNode_parm.type().definition()
@@ -160,7 +150,6 @@ class parmUtils():
                         set_on = self.envNode_parm
                 else:
                     set_on = self.envNode_parm
-            # create new folder that will store all the nodes form one node
                 folder_id = self.parm_node.name()
                 folder_id = folder_id.replace("/", "_").strip("_")
                 group = set_on.parmTemplateGroup()
@@ -171,12 +160,10 @@ class parmUtils():
                     set_on.setParmTemplateGroup(
                         group, rename_conflicting_parms=True)
                 else:
-                    # if the user tries to write parm to hda definition on a node that's already referenced in a sapre parms, trow an exception to avoid confusion
                     if self.hdaGroup and assign_to_definition:
                         if self.envNode_parm.parmTemplateGroup().findFolder(folder_id):
                             raise HoudiniError(
                                 "Folder found in a spare parameters of the node")
-                    # create a folder that will be named after the full path of the node, and put all parameters from that node in it
                     new_folder = hou.FolderParmTemplate(
                         folder_id, folder_id, (self.valid_temp(self.envNode_parm),), folder_type=hou.folderType.Simple)
                     group.append(new_folder)
@@ -186,17 +173,14 @@ class parmUtils():
             else:
                 raise HoudiniError("Parm is a multiparm instance")
 
-            # set up an expression for referencing new parm
             refeshed_folder = set_on.parmTemplateGroup().findFolder(folder_id)
             latest_temp = refeshed_folder.parmTemplates()[-1].name()
             parm_to_ref = self.envNode_parm.parmTuple(latest_temp)
 
             for to_set, to_fetch in zip(parm_to_ref, self.parm_tuple):
-                # copy the current value of the parameter to the newly created parameter
                 to_set.set(to_fetch.eval())
                 parm_name = to_set.name()
                 parm_path = f"{self.channelType}(\"{self.refrencePath}/{parm_name}\")"
-                # if parm is a ramp, create a parm without expression, the user will have to link them manually
                 if not isinstance(self.parm_inst.parmTemplate(), hou.RampParmTemplate):
                     to_fetch.setExpression(
                         parm_path, language=hou.exprLanguage.Hscript)
@@ -205,17 +189,14 @@ class parmUtils():
             raise HoudiniError("No parm enviroment parm found")
 
     def deleteParm(self):
-        # make sure we can only delete parms that could have been referenced in other nodes
         if not self.parm_tuple.isMultiParmInstance():
             if not isinstance(self.parm_tuple.parmTemplate(), hou.FolderSetParmTemplate):
                 if self.parm_inst.isSpare():
-                    # remove keyframes form all the parms referencting this parm
                     for parm in self.parm_tuple:
                         for parm_ref in parm.parmsReferencingThis():
                             parm_ref.deleteAllKeyframes()
                     self.parm_node.removeSpareParmTuple(self.parm_tuple)
                     return
-                # if parm not found in spares, and its an editable hda, go find it and update hda definition
                 if self.parm_node.type().definition():
                     group = self.parm_group
                     for parm in self.parm_tuple:
@@ -247,7 +228,6 @@ class parmUtils():
 
 
 
-# Parameters Menu
 def ctrl_node_set(kwargs):
     node_path = kwargs['node'].path()
     node = hou.node(node_path)

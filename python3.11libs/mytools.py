@@ -1,5 +1,6 @@
 import os, hou, toolutils, time, hdefereval, re
 last_index = -1
+_last_selected_node_path = None
 
 
 def getSelectedNode():
@@ -8,9 +9,6 @@ def getSelectedNode():
     selectedNode = hou.selectedNodes()[0]
     if selectedNode.type().category().name() != 'Vop':
         return None
-    # Not do anything if the selected node is a print node
-    # if selectedNode.type().name() == 'print':
-    #     return None
     if selectedNode.type().name() == 'geometryvopoutput':
         return None
     return selectedNode
@@ -62,7 +60,6 @@ def openFile(filePath):
 
 
 def toggle_stowbars_original(hidemainmenu=False):
-    # Toggle the global "minimized stowbar" state in the UI.
     b = hou.ui.hideAllMinimizedStowbars()
     b = not b
 
@@ -183,12 +180,6 @@ def toggle_bars():
 
 
 def toggle_toolbar(toolbar_name, state=-1):
-    """
-    Toggles the visibility of a specified toolbar in the Scene Viewer pane tab.
-
-    :param toolbar_name: Name of the toolbar to toggle ('selection', 'operation', or 'displayOptions').
-    :param state: -1 to toggle, 0 to hide, 1 to show.
-    """
     pane_tab = hou.ui.paneTabUnderCursor()
     if pane_tab and pane_tab.type() == hou.paneTabType.SceneViewer:
         toggle_methods = {
@@ -258,7 +249,6 @@ def toggle_bg():
     for paneTab in paneTabs:
         if paneTab.type() == hou.paneTabType.SceneViewer:
 
-            # Get colors from current color scheme
             sv = toolutils.sceneViewer()
             viewports = sv.viewports()
             for cv in viewports:
@@ -266,17 +256,13 @@ def toggle_bg():
                 color = st.colorScheme()
                 color_name = str(color).split('.')[-1]
 
-                # Define a dictionary of color names and their corresponding values
                 color_dict = {
                     'Dark':  hou.viewportColorScheme.Dark,
                     'Grey':  hou.viewportColorScheme.Grey,
                     'Light': hou.viewportColorScheme.Light,
                 }
 
-                # Get the next color name
                 next_color_name = list(color_dict.keys())[(list(color_dict.keys()).index(color_name) + 1) % len(color_dict)]
-
-                # Set the color scheme to the next color
                 st.setColorScheme(color_dict[next_color_name])
 
 
@@ -345,7 +331,6 @@ def toggle_matcaps_in_directory(directory):
 
 def preview_output():
     if not hou.selectedNodes():
-        # print ("No selected node")
         return
     curnode = hou.selectedNodes()[0]
     
@@ -386,11 +371,9 @@ def preview_output():
     
     if result:
         if result.inputConnections():
-            # Disconnect the input
             for input in result.inputs():
                 result.setInput(0, None)
         else:
-            # Connect to curnode
             result.setNextInput(curnode, 0)
 
 
@@ -418,42 +401,32 @@ def preview_color():
 
 
 def review_redshift():
-    # Check if a node is selected
     if not hou.selectedNodes():
         print("No selected node")
         return
 
-    # Iterate over the selected nodes
     for curnode in hou.selectedNodes():
 
-        # Check if the selected node is a redshift_material node
         if curnode.type().name() == "redshift_material":
 
-            # Set the node's color to orange
             curnode.setColor(hou.Color((0.99, 0.66, 0)))
 
-            # Iterate over all nodes with the same name in the same context
             for node in curnode.parent().children():
                 if node.type().name() == "redshift_material" and node != curnode:
 
-                    # Set the color of all other redshift_material nodes to grey
                     node.setColor(hou.Color((0.8, 0.8, 0.8)))
         else:
 
-            # Check if the selected node is a Vop node
             if not curnode or curnode.type().category().name() != 'Vop': 
                 print("No Shop or Mat selected!")
                 continue
 
-            # Find the redshift_material node with the color (0.99, 0.66, 0)
             result = None
             for node in curnode.parent().children():
                 if node.type().name() == "redshift_material" and node.color() == hou.Color((0.99, 0.66, 0)):
                     result = node
                     break
 
-            # If no redshift_material node with the correct color was found,
-            # find any redshift_material node and set its color to (0.99, 0.66, 0)
             if not result:
                 for node in curnode.parent().children():
                     if node.type().name() == "redshift_material":
@@ -461,29 +434,22 @@ def review_redshift():
                         result.setColor(hou.Color((0.99, 0.66, 0)))
                         break
 
-            # Check if a redshift_material node with the correct color was found
             if result:
 
-                # Check the type of the selected node
                 if curnode.type().name() == "redshift::Volume":
 
-                    # Connect to pin 4 of the redshift_material node
                     result.setInput(4, curnode, 0)
                 elif curnode.type().name() in ["redshift::Displacement", "redshift::DisplacementBlender"]:
 
-                    # Connect to pin 1 of the redshift_material node
                     result.setInput(1, curnode, 0)
                 elif curnode.type().name() in ["redshift::BumpMap", "redshift::NormalMap", "redshift::BumpBlender"]:
 
-                    # Connect to pin 2 of the redshift_material node
                     result.setInput(2, curnode, 0)
                 elif curnode.type().name() in ["redshift::PhysicalSky", "redshift::Environment"]:
 
-                    # Connect to pin 2 of the redshift_material node
                     result.setInput(3, curnode, 0)
                 else:
 
-                    # Connect to pin 0 of the redshift_material node in all other cases
                     result.setInput(0, curnode, 0)
             else:
                 print("No redshift_material node with the color (0.99, 0.66, 0) found")
@@ -543,11 +509,9 @@ def switch_to_pane(paneType, showNetworkControls=0):
 
 def switch_to_pane_toggleViewers():
     """Toggle between Scene Viewer, Channel Viewer, and Compositor Viewer."""
-    # Try to get the pane under the cursor
     paneTab = hou.ui.paneTabUnderCursor()
 
     if not paneTab:
-        # Fallback to the active tab of the pane under the cursor
         pane = hou.ui.paneUnderCursor()
         if pane:
             paneTab = pane.currentTab()
@@ -556,27 +520,20 @@ def switch_to_pane_toggleViewers():
         hou.ui.displayMessage("No valid pane under cursor.")
         return
 
-    # Define the pane types to toggle between
     pane_types = [
         hou.paneTabType.SceneViewer,
         hou.paneTabType.ChannelViewer,
         hou.paneTabType.CompositorViewer,
     ]
 
-    # Get the current pane type
     current_type = paneTab.type()
 
-    # Find the next pane type in the sequence
     try:
         current_index = pane_types.index(current_type)
     except ValueError:
-        # If the current pane type is not in the list, default to the first
         next_type = pane_types[0]
     else:
-        # Cycle to the next type
         next_type = pane_types[(current_index + 1) % len(pane_types)]
-
-    # Switch to the next pane type
     switch_to_pane(next_type)
 
 
@@ -585,7 +542,6 @@ def switch_to_pythonPane(pythonPaneType, showNetworkControls=1):
     paneTab = hou.ui.paneTabUnderCursor()
     if paneTab:
         paneTab = paneTab.setType(hou.paneTabType.PythonPanel)
-        # paneTab.setActiveInterface(hou.pypanel.interfaces()[pythonPaneType])
         paneTab.setActiveInterface(hou.pypanel.interfaceByName(pythonPaneType))
         paneTab.showNetworkControls(showNetworkControls)
 
@@ -596,7 +552,6 @@ def switch_to_tab(tabIndex, isDetailsView=False):
     paneTab = hou.ui.paneTabUnderCursor()
 
     if isDetailsView:
-        # Operate on DetailsView
         if paneTab and paneTab.type() == hou.paneTabType.DetailsView:
             if tabIndex == 0:
                 paneTab.setAttribType(hou.attribType.Point)
@@ -607,7 +562,6 @@ def switch_to_tab(tabIndex, isDetailsView=False):
             elif tabIndex == 3:
                 paneTab.setAttribType(hou.attribType.Global)
     else:
-        # Operate on regular tabs
         if pane:
             tabs = pane.tabs()
             if tabIndex < len(tabs):
@@ -620,9 +574,7 @@ def switch_next_tab(isDetailsView=False, direction=1):
     paneTab = hou.ui.paneTabUnderCursor()
 
     if isDetailsView:
-        # Operate on DetailsView
         if paneTab and paneTab.type() == hou.paneTabType.DetailsView:
-            # Cycle through attribute types in DetailsView
             current_type = paneTab.attribType()
             if current_type == hou.attribType.Point:
                 next_type = hou.attribType.Vertex
@@ -634,13 +586,11 @@ def switch_next_tab(isDetailsView=False, direction=1):
                 next_type = hou.attribType.Point
             paneTab.setAttribType(next_type)
     else:
-        # Operate on regular tabs
         if pane:
             tabs = pane.tabs()
             current_tab = pane.currentTab()
             if current_tab:
                 current_index = tabs.index(current_tab)
-                # Compute the next index based on direction
                 next_index = (current_index + direction) % len(tabs)
                 tabs[next_index].setIsCurrentTab()
 
@@ -769,7 +719,11 @@ def toggle_axiom_sim(value = None):
 
                     node.parm("enableSimulation").set(value)
 
+
+
 def ctrl_select():
+    global _last_selected_node_path
+    
     ctrl_path = hou.getenv('ctrl_node')
     if not ctrl_path:
         return
@@ -779,12 +733,26 @@ def ctrl_select():
         return
 
     ctx = hou.ui.paneTabOfType(hou.paneTabType.NetworkEditor)
-    if ctx:
+    if not ctx:
+        return
+    
+    if ctrl_node.isSelected() and _last_selected_node_path:
+        last_node = hou.node(_last_selected_node_path)
+        if last_node:
+            for n in ctx.pwd().children():
+                n.setSelected(False)
+            last_node.setSelected(True, clear_all_selected=True)
+        else:
+            _last_selected_node_path = None
+    else:
+        selected_nodes = [n for n in hou.selectedNodes() if n != ctrl_node]
+        
+        if selected_nodes:
+            _last_selected_node_path = selected_nodes[0].path()
+        
         for n in ctx.pwd().children():
             n.setSelected(False)
-
-    ctrl_node.setSelected(not ctrl_node.isSelected(), clear_all_selected=True)
-
+        ctrl_node.setSelected(True, clear_all_selected=True)
 
 
 
@@ -894,23 +862,19 @@ def get_scene_viewer_under_cursor():
 
 
 def toggle_shading_mode():
-    # Get the Scene Viewer under the cursor
     viewer = get_scene_viewer_under_cursor()
     if not viewer:
         hou.ui.displayMessage("No Scene Viewer under cursor.")
         return
 
-    # Get the current viewport and its settings
     viewport = viewer.curViewport()
     settings = viewport.settings()
 
-    # List of display sets to modify (object and geometry levels)
     display_sets = [
-        settings.displaySet(hou.displaySetType.DisplayModel),  # Geometry level
-        settings.displaySet(hou.displaySetType.SceneObject)   # Object level
+        settings.displaySet(hou.displaySetType.DisplayModel),
+        settings.displaySet(hou.displaySetType.SceneObject)
     ]
 
-    # Define two sets of modes to toggle between
     modes_set_1 = [
         hou.glShadingType.WireBoundingBox,
         hou.glShadingType.WireGhost,
@@ -929,46 +893,37 @@ def toggle_shading_mode():
         hou.glShadingType.MatCapWire
     ]
 
-    # Loop through each display set and toggle shading mode
     for display_set in display_sets:
         current_mode = display_set.shadedMode()
 
-        # Check if current mode belongs to set 1 or set 2
         if current_mode in modes_set_1:
             mode_set = modes_set_1
         elif current_mode in modes_set_2:
             mode_set = modes_set_2
         else:
-            # If current mode doesn't belong to either set, default to set 1
             mode_set = modes_set_1
 
-        # Determine the next mode in the corresponding set
         next_mode_index = (mode_set.index(current_mode) + 1) % len(mode_set)
         next_mode = mode_set[next_mode_index]
 
-        # Set the new shading mode for the display set
         display_set.setShadedMode(next_mode)
 
 
 
 def toggle_shading_mode_pair():
-    # Get the Scene Viewer under the cursor
     viewer = get_scene_viewer_under_cursor()
     if not viewer:
         hou.ui.displayMessage("No Scene Viewer under cursor.")
         return
 
-    # Get the current viewport and its settings
     viewport = viewer.curViewport()
     settings = viewport.settings()
 
-    # List of display sets to modify (object and geometry levels)
     display_sets = [
-        settings.displaySet(hou.displaySetType.DisplayModel),  # Geometry level
-        settings.displaySet(hou.displaySetType.SceneObject)   # Object level
+        settings.displaySet(hou.displaySetType.DisplayModel),
+        settings.displaySet(hou.displaySetType.SceneObject) 
     ]
 
-    # Define pairs for toggling
     shading_pairs = [
         (hou.glShadingType.WireBoundingBox, hou.glShadingType.ShadedBoundingBox),
         (hou.glShadingType.WireGhost, hou.glShadingType.Wire),
@@ -978,12 +933,9 @@ def toggle_shading_mode_pair():
         (hou.glShadingType.MatCap, hou.glShadingType.MatCapWire)
     ]
 
-    # Loop through each display set and toggle shading mode
     for display_set in display_sets:
-        # Check the current shading mode
         current_mode = display_set.shadedMode()
 
-        # Check each pair and toggle if current_mode matches one of the pair members
         for mode_a, mode_b in shading_pairs:
             if current_mode == mode_a:
                 display_set.setShadedMode(mode_b)
@@ -995,10 +947,8 @@ def toggle_shading_mode_pair():
 
 
 def convert_hda_to_subnet():
-    # Get selected nodes
     selected_nodes = hou.selectedNodes()
     
-    # Check if exactly one node is selected and it's an HDA
     if len(selected_nodes) != 1:
         print("Error: Please select exactly one HDA node.")
         return
@@ -1008,51 +958,42 @@ def convert_hda_to_subnet():
         return
     
     try:
-        # Store parent and original position
         parent = hda_node.parent()
         position = hda_node.position()
         
-        # Allow editing of contents (unlock HDA)
         if not hda_node.isEditable():
             hda_node.allowEditingOfContents()
         
-        # Create a new subnet to hold extracted contents
         subnet = parent.createNode("subnet", hda_node.name() + "_subnet")
         
-        # Manually extract contents by copying nodes from inside the HDA
         internal_nodes = hda_node.children()
         if not internal_nodes:
             print("Warning: HDA contains no nodes to extract.")
             subnet.destroy()
             return
         
-        # Record original positions and copy nodes to the subnet
-        node_map = {}  # Map original nodes to their copies
-        node_positions = {}  # Map original nodes to their positions
+        node_map = {}
+        node_positions = {}
         for node in internal_nodes:
-            node_positions[node] = node.position()  # Store original position
+            node_positions[node] = node.position()
             new_node = subnet.copyItems([node])[0]
             node_map[node] = new_node
         
-        # Set positions of copied nodes to match original layout
         for orig_node, new_node in node_map.items():
             if orig_node in node_positions:
                 new_node.setPosition(node_positions[orig_node])
         
-        # Reconnect nodes inside the subnet to preserve internal wiring
         for orig_node, new_node in node_map.items():
             for i, input_node in enumerate(orig_node.inputs()):
                 if input_node in node_map:
                     new_node.setInput(i, node_map[input_node])
         
-        # Copy parameter interface
         parm_templates = hda_node.parmTemplateGroup().entries()
         new_parm_group = hou.ParmTemplateGroup()
         for parm_template in parm_templates:
             new_parm_group.append(parm_template)
         subnet.setParmTemplateGroup(new_parm_group)
         
-        # Match parameter values
         for parm in hda_node.parms():
             parm_name = parm.name()
             subnet_parm = subnet.parm(parm_name)
@@ -1060,12 +1001,10 @@ def convert_hda_to_subnet():
                 try:
                     subnet_parm.set(parm.eval())
                 except:
-                    pass  # Skip if parameter types mismatch
+                    pass
         
-        # Position the subnet where the HDA was
         subnet.setPosition(position)
         
-        # Connect subnet to the same inputs and outputs as the HDA
         for i, input_node in enumerate(hda_node.inputs()):
             subnet.setInput(i, input_node)
         for conn in hda_node.outputConnections():
@@ -1073,10 +1012,8 @@ def convert_hda_to_subnet():
             input_index = conn.inputIndex()
             output_node.setInput(input_index, subnet, conn.outputIndex())
         
-        # Delete the original HDA
         hda_node.destroy()
         
-        # Select the new subnet
         subnet.setSelected(True)
         
         print(f"HDA '{subnet.name()}' converted to subnet successfully!")
@@ -1084,4 +1021,4 @@ def convert_hda_to_subnet():
     except Exception as e:
         print(f"Error converting HDA to subnet: {str(e)}")
         if subnet:
-            subnet.destroy()  # Clean up if subnet was created
+            subnet.destroy()
