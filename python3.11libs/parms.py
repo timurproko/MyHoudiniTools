@@ -76,6 +76,26 @@ class parmUtils():
             return None
 
     @staticmethod
+    def findFolderContainingParm(group: hou.ParmTemplateGroup, parm_name: str) -> Optional[hou.FolderParmTemplate]:
+        """Find the folder that contains a parameter with the given name"""
+        def searchInFolder(folder: hou.FolderParmTemplate) -> Optional[hou.FolderParmTemplate]:
+            for template in folder.parmTemplates():
+                if template.name() == parm_name:
+                    return folder
+                if isinstance(template, hou.FolderParmTemplate):
+                    result = searchInFolder(template)
+                    if result:
+                        return result
+            return None
+        
+        for entry in group.entries():
+            if isinstance(entry, hou.FolderParmTemplate):
+                result = searchInFolder(entry)
+                if result:
+                    return result
+        return None
+
+    @staticmethod
     def jumpToNode(env: str, parm_type: str) -> None:
         network_editor = hou.ui.paneTabUnderCursor()
         choice = hou.ui.displayCustomConfirmation(
@@ -154,31 +174,76 @@ class parmUtils():
                         set_on = self.envNode_parm
                 else:
                     set_on = self.envNode_parm
-                folder_id = self.parm_node.name()
-                folder_id = folder_id.replace("/", "_").strip("_")
+                
+                source_folder = parmUtils.findFolderContainingParm(self.parm_group, self._parm.name())
+                folder_id = None
+                folder_label = None
+                if source_folder:
+                    folder_id = source_folder.name()
+                    folder_label = source_folder.label()
+                
+                valid_template = self.valid_temp(self.envNode_parm)
+                template_name = valid_template.name()
+                
                 group = set_on.parmTemplateGroup()
-                if group.findFolder(folder_id):
-                    found_folder = group.findFolder(folder_id)
-                    group.appendToFolder(
-                        found_folder, self.valid_temp(self.envNode_parm))
-                    set_on.setParmTemplateGroup(
-                        group, rename_conflicting_parms=True)
+                
+                if folder_id:
+                    if group.findFolder(folder_id):
+                        found_folder = group.findFolder(folder_id)
+                        group.appendToFolder(found_folder, valid_template)
+                        set_on.setParmTemplateGroup(
+                            group, rename_conflicting_parms=True)
+                    else:
+                        if self.hdaGroup and assign_to_definition:
+                            if self.envNode_parm.parmTemplateGroup().findFolder(folder_id):
+                                raise HoudiniError(
+                                    "Folder found in a spare parameters of the node")
+                        new_folder = hou.FolderParmTemplate(
+                            folder_id, folder_label, (valid_template,), folder_type=hou.folderType.Simple)
+                        group.append(new_folder)
+                        set_on.setParmTemplateGroup(
+                            group, rename_conflicting_parms=True)
                 else:
-                    if self.hdaGroup and assign_to_definition:
-                        if self.envNode_parm.parmTemplateGroup().findFolder(folder_id):
-                            raise HoudiniError(
-                                "Folder found in a spare parameters of the node")
-                    new_folder = hou.FolderParmTemplate(
-                        folder_id, folder_id, (self.valid_temp(self.envNode_parm),), folder_type=hou.folderType.Simple)
-                    group.append(new_folder)
+                    group.append(valid_template)
                     set_on.setParmTemplateGroup(
                         group, rename_conflicting_parms=True)
 
             else:
                 raise HoudiniError("Parm is a multiparm instance")
 
-            refeshed_folder = set_on.parmTemplateGroup().findFolder(folder_id)
-            latest_temp = refeshed_folder.parmTemplates()[-1].name()
+            group = set_on.parmTemplateGroup()
+            latest_temp = None
+            
+            if folder_id:
+                refeshed_folder = group.findFolder(folder_id)
+                if refeshed_folder:
+                    folder_parms = refeshed_folder.parmTemplates()
+                    for parm_template in reversed(folder_parms):
+                        if parm_template.name() == template_name:
+                            latest_temp = parm_template.name()
+                            break
+                    if not latest_temp:
+                        base_name = re.sub(r"_\d+$", "", template_name)
+                        for parm_template in reversed(folder_parms):
+                            if parm_template.name().startswith(base_name + "_") or parm_template.name() == base_name:
+                                latest_temp = parm_template.name()
+                                break
+            else:
+                root_entries = [e for e in group.entries() if not isinstance(e, hou.FolderParmTemplate)]
+                for entry in reversed(root_entries):
+                    if entry.name() == template_name:
+                        latest_temp = entry.name()
+                        break
+                if not latest_temp:
+                    base_name = re.sub(r"_\d+$", "", template_name)
+                    for entry in reversed(root_entries):
+                        if entry.name().startswith(base_name + "_") or entry.name() == base_name:
+                            latest_temp = entry.name()
+                            break
+            
+            if not latest_temp:
+                latest_temp = template_name
+            
             parm_to_ref = self.envNode_parm.parmTuple(latest_temp)
 
             if isinstance(self.parm_inst.parmTemplate(), hou.ButtonParmTemplate):
@@ -255,22 +320,17 @@ class parmUtils():
             result = []
             for template in templates:
                 if isinstance(template, hou.FolderParmTemplate):
-                    # Recursively extract templates from this folder
                     result.extend(extractTemplates(template.parmTemplates()))
                 else:
-                    # Add non-folder template
                     result.append(template)
             return result
         
-        # Extract all templates from folders
         all_templates = extractTemplates(group.entries())
         
-        # Create new group with all templates at root level (no folders)
         new_group = hou.ParmTemplateGroup()
         for template in all_templates:
             new_group.append(template)
         
-        # Set the new group back to the node
         node.setParmTemplateGroup(new_group)
 
 
