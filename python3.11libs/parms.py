@@ -136,6 +136,10 @@ class parmUtils():
                     break
         if base_parm.namingScheme() in parmUtils.invalidSchemes():
             base_parm.setNamingScheme(hou.parmNamingScheme.Base1)
+        
+        if isinstance(base_parm, hou.ButtonParmTemplate):
+            if base_parm.scriptCallback():
+                base_parm.setScriptCallback("")
             
         base_parm.setConditional(hou.parmCondType.HideWhen, "")
         return base_parm
@@ -177,13 +181,27 @@ class parmUtils():
             latest_temp = refeshed_folder.parmTemplates()[-1].name()
             parm_to_ref = self.envNode_parm.parmTuple(latest_temp)
 
-            for to_set, to_fetch in zip(parm_to_ref, self.parm_tuple):
-                to_set.set(to_fetch.eval())
-                parm_name = to_set.name()
-                parm_path = f"{self.channelType}(\"{self.refrencePath}/{parm_name}\")"
-                if not isinstance(self.parm_inst.parmTemplate(), hou.RampParmTemplate):
-                    to_fetch.setExpression(
-                        parm_path, language=hou.exprLanguage.Hscript)
+            if isinstance(self.parm_inst.parmTemplate(), hou.ButtonParmTemplate):
+                control_to_source_path = self.envNode_parm.relativePathTo(self.parm_node)
+                source_parm_path = f"'{control_to_source_path}/{self.parm_inst.name()}'"
+                callback_script = f"hou.parm({source_parm_path}).pressButton()"
+                
+                group = set_on.parmTemplateGroup()
+                button_template = group.find(latest_temp)
+                if button_template and isinstance(button_template, hou.ButtonParmTemplate):
+                    button_template = button_template.clone()
+                    button_template.setScriptCallback(callback_script)
+                    button_template.setScriptCallbackLanguage(hou.scriptLanguage.Python)
+                    group.replace(latest_temp, button_template)
+                    set_on.setParmTemplateGroup(group)
+            else:
+                for to_set, to_fetch in zip(parm_to_ref, self.parm_tuple):
+                    to_set.set(to_fetch.eval())
+                    parm_name = to_set.name()
+                    parm_path = f"{self.channelType}(\"{self.refrencePath}/{parm_name}\")"
+                    if not isinstance(self.parm_inst.parmTemplate(), hou.RampParmTemplate):
+                        to_fetch.setExpression(
+                            parm_path, language=hou.exprLanguage.Hscript)
 
         else:
             raise HoudiniError("No parm enviroment parm found")
@@ -225,6 +243,35 @@ class parmUtils():
                 parm.setLabel(label)
                 group.replace(original_parm, parm)
         node.setParmTemplateGroup(group)
+
+    @staticmethod
+    def removeFolders(kwargs):
+        """Remove all folders from parameter template group while keeping all spare parameters"""
+        node = kwargs["node"]
+        group = node.parmTemplateGroup()
+        
+        def extractTemplates(templates):
+            """Recursively extract all non-folder templates from folders"""
+            result = []
+            for template in templates:
+                if isinstance(template, hou.FolderParmTemplate):
+                    # Recursively extract templates from this folder
+                    result.extend(extractTemplates(template.parmTemplates()))
+                else:
+                    # Add non-folder template
+                    result.append(template)
+            return result
+        
+        # Extract all templates from folders
+        all_templates = extractTemplates(group.entries())
+        
+        # Create new group with all templates at root level (no folders)
+        new_group = hou.ParmTemplateGroup()
+        for template in all_templates:
+            new_group.append(template)
+        
+        # Set the new group back to the node
+        node.setParmTemplateGroup(new_group)
 
 
 

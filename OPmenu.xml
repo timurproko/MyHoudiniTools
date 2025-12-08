@@ -106,6 +106,29 @@ hdefereval.executeDeferred(runLater)
 ]]>
 </scriptCode>
 </scriptItem>
+
+<scriptItem id = "ctrl_remove_folders">
+<label>Remove Folders</label>
+<insertAfter>ctrl_names_shorten</insertAfter>
+<expression>
+<![CDATA[
+if hou.getenv("ctrl_node"):
+    return True
+else:
+    return False
+]]>
+</expression>
+<scriptCode>
+<![CDATA[
+def runLater():
+    import parms
+    parms.parmUtils.removeFolders(kwargs)
+import hdefereval
+hdefereval.executeDeferred(runLater)
+]]>
+</scriptCode>
+</scriptItem>
+
         </subMenu>
 
         <subMenu id="presets_menu">
