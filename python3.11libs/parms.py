@@ -96,6 +96,28 @@ class parmUtils():
         return None
 
     @staticmethod
+    def findFolderByName(group: hou.ParmTemplateGroup, folder_name: str) -> Optional[hou.FolderParmTemplate]:
+        """Find a folder by name, searching recursively through all folders including nested ones"""
+        def searchRecursive(folder: hou.FolderParmTemplate) -> Optional[hou.FolderParmTemplate]:
+            if folder.name() == folder_name:
+                return folder
+            for template in folder.parmTemplates():
+                if isinstance(template, hou.FolderParmTemplate):
+                    result = searchRecursive(template)
+                    if result:
+                        return result
+            return None
+        
+        for entry in group.entries():
+            if isinstance(entry, hou.FolderParmTemplate):
+                if entry.name() == folder_name:
+                    return entry
+                result = searchRecursive(entry)
+                if result:
+                    return result
+        return None
+
+    @staticmethod
     def jumpToNode(env: str, parm_type: str) -> None:
         network_editor = hou.ui.paneTabUnderCursor()
         choice = hou.ui.displayCustomConfirmation(
@@ -188,16 +210,13 @@ class parmUtils():
                 group = set_on.parmTemplateGroup()
                 
                 if folder_id:
-                    if group.findFolder(folder_id):
-                        found_folder = group.findFolder(folder_id)
+                    found_folder = parmUtils.findFolderByName(group, folder_id)
+                    
+                    if found_folder:
                         group.appendToFolder(found_folder, valid_template)
                         set_on.setParmTemplateGroup(
                             group, rename_conflicting_parms=True)
                     else:
-                        if self.hdaGroup and assign_to_definition:
-                            if self.envNode_parm.parmTemplateGroup().findFolder(folder_id):
-                                raise HoudiniError(
-                                    "Folder found in a spare parameters of the node")
                         new_folder = hou.FolderParmTemplate(
                             folder_id, folder_label, (valid_template,), folder_type=hou.folderType.Simple)
                         group.append(new_folder)
@@ -215,7 +234,7 @@ class parmUtils():
             latest_temp = None
             
             if folder_id:
-                refeshed_folder = group.findFolder(folder_id)
+                refeshed_folder = parmUtils.findFolderByName(group, folder_id)
                 if refeshed_folder:
                     folder_parms = refeshed_folder.parmTemplates()
                     for parm_template in reversed(folder_parms):
@@ -291,23 +310,6 @@ class parmUtils():
                 raise HoudiniError("Can't delete folder")
         else:
             raise HoudiniError("Parm is a multiparm instance")
-
-    # @staticmethod
-    # def renameParms(kwargs):
-    #     node = kwargs["node"]
-    #     group = node.parmTemplateGroup()
-    #     spare_names = [parm.parmTemplate().name()
-    #                     for parm in node.spareParms()]
-    #     all_templates = group.entries() + group.entriesWithoutFolders()
-    #     for parm in all_templates:
-    #         parm_name = parm.name()
-    #         if parm_name in spare_names:
-    #             original_parm = parm.name()
-    #             parm_name = re.sub(r'\d+', '', original_parm)
-    #             label = parm_name.replace("_", " ").title()
-    #             parm.setLabel(label)
-    #             group.replace(original_parm, parm)
-    #     node.setParmTemplateGroup(group)
 
     @staticmethod
     def removeFolders(kwargs):
