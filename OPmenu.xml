@@ -72,7 +72,9 @@ parms.ctrl_node_set(kwargs)
 <label>Open Parameters Tab</label>
 <expression>
 <![CDATA[
-if hou.getenv("ctrl_node"):
+node = kwargs["node"]
+ctrl_node_path = hou.getenv("ctrl_node")
+if ctrl_node_path and node.path() == ctrl_node_path:
     return True
 else:
     return False
@@ -86,33 +88,13 @@ parms.ctrl_open_tab(kwargs)
 </scriptCode>
 </scriptItem>
 
-<scriptItem id = "ctrl_names_shorten">
-<label>Shorten Names</label>
-<expression>
-<![CDATA[
-if hou.getenv("ctrl_node"):
-    return True
-else:
-    return False
-]]>
-</expression>
-<scriptCode>
-<![CDATA[
-def runLater():
-    import parms
-    parms.parmUtils.renameParms(kwargs)
-import hdefereval
-hdefereval.executeDeferred(runLater)
-]]>
-</scriptCode>
-</scriptItem>
-
 <scriptItem id = "ctrl_remove_folders">
 <label>Remove Folders</label>
-<insertAfter>ctrl_names_shorten</insertAfter>
 <expression>
 <![CDATA[
-if hou.getenv("ctrl_node"):
+node = kwargs["node"]
+ctrl_node_path = hou.getenv("ctrl_node")
+if ctrl_node_path and node.path() == ctrl_node_path:
     return True
 else:
     return False
