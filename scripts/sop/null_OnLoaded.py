@@ -5,9 +5,9 @@ import os
 
 try:
     try:
-        import parms
+        import constants
     except ImportError:
-        parms = None
+        constants = None
         houdini_pref_dir = hou.getenv("HOUDINI_USER_PREF_DIR")
         if houdini_pref_dir:
             packages_dir = os.path.join(houdini_pref_dir, "packages")
@@ -19,10 +19,13 @@ try:
                         if os.path.exists(libs_dir) and libs_dir not in sys.path:
                             sys.path.insert(0, libs_dir)
                             try:
-                                import parms
+                                import constants
                                 break
                             except ImportError:
                                 pass
+
+    if constants is None:
+        raise SystemExit
 
     me = kwargs.get("node")
     if me is None:
@@ -31,14 +34,13 @@ try:
     if me.type().name() != "null":
         raise SystemExit
 
-    ctrl_base = (parms.CTRL_BASE_NAME if parms else "CTRL")
-    if not me.name().upper().startswith(ctrl_base.upper()):
+    if not me.name().upper().startswith(constants.CTRL_BASE_NAME.upper()):
         raise SystemExit
 
-    inactive_color = (parms.CTRL_COLOR_INACTIVE if parms else hou.Color((0.996, 0.682, 0.682)))
-    active_color = (parms.CTRL_COLOR_ACTIVE if parms else hou.Color((0.8, 0.2, 0.2)))
+    inactive_color = constants.CTRL_COLOR_INACTIVE
+    active_color = constants.CTRL_COLOR_ACTIVE
 
-    active_ctrl_path = hou.getenv("ctrl_node") or ""
+    active_ctrl_path = hou.getenv(constants.ENV_CTRL_NODE) or ""
     current_path = me.path()
     is_active_ctrl = (active_ctrl_path and current_path == active_ctrl_path)
 

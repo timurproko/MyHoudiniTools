@@ -1,10 +1,6 @@
 from typing import Iterable, Optional, Tuple, Generator
 import hou, itertools, re
-
-# CTRL node constants
-CTRL_BASE_NAME = "CTRL"
-CTRL_COLOR_ACTIVE = hou.Color((0.8, 0.2, 0.2))
-CTRL_COLOR_INACTIVE = hou.Color((0.996, 0.682, 0.682))
+from constants import CTRL_BASE_NAME, CTRL_COLOR_ACTIVE, CTRL_COLOR_INACTIVE, ENV_CTRL_NODE, ENV_MULTIPARM_NODE
 
 
 class HoudiniError(Exception):
@@ -31,13 +27,13 @@ class parmUtils():
 
     @property
     def envNode_parm(self) -> Optional[str]:
-        env = hou.getenv("ctrl_node")
+        env = hou.getenv(ENV_CTRL_NODE)
         if env:
             return hou.node(env)
 
     @property
     def envNode_multi_counter(self) -> Optional[str]:
-        env = hou.getenv("MULTIPARM_NODE")
+        env = hou.getenv(ENV_MULTIPARM_NODE)
         if env:
             return hou.node(env)
 
@@ -349,7 +345,7 @@ def updateCtrlNodeColors():
     This is a modular function that can be called from anywhere.
     """
     try:
-        active_ctrl_path = hou.getenv('ctrl_node') or ""
+        active_ctrl_path = hou.getenv(ENV_CTRL_NODE) or ""
         
         for node in hou.node("/").allSubChildren():
             if node.name().startswith(CTRL_BASE_NAME):
@@ -399,7 +395,7 @@ def ctrl_node_set(kwargs):
 
     def saveParmNodePath(node):
         node_path = node.path()
-        hou.hscript("set -g ctrl_node = {}".format(node_path))
+        hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
 
     autoRename(node, base_name)
     hideNullParms(node)

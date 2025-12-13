@@ -20,11 +20,8 @@ import utility_hotkey_system
 from PySide6 import QtCore, QtWidgets, QtGui
 import nodegraphbase as base
 import nodegraphstates as states
+from constants import CTRL_BASE_NAME, CTRL_COLOR_ACTIVE, CTRL_COLOR_INACTIVE, ENV_CTRL_NODE
 
-
-# =============================================================================
-# Pending Actions / Base Handlers (your existing code)
-# =============================================================================
 
 class PendingAction(object):
     def __init__(self):
@@ -59,7 +56,6 @@ class PendingTextChangeAction(PendingAction):
         self.valueid = valueid
 
     def completeAction(self, uievent):
-        # A value id of 0 indicates the editor was never opened.
         if self.valueid == 0:
             return True
 
@@ -98,7 +94,6 @@ class PendingTextChangeAction(PendingAction):
                 return True
 
         elif isinstance(uievent, MouseEvent):
-            # Cancel the edit if the user moves the mouse wheel.
             if uievent.eventtype == 'mousewheel':
                 uievent.editor.closeTextEditor(self.valueid, apply_changes=True)
 
@@ -269,16 +264,11 @@ class OverviewMouseHandler(EventHandler):
         return self
 
 
-# =============================================================================
-# ADDITION: Ctrl+LMB Switch cycler (additive, never suppresses)
-# =============================================================================
-
 def _isNonNodeThing(x):
     return isinstance(x, (hou.NodeConnection, hou.NetworkDot, hou.NetworkBox,
                           hou.OpSubnetIndirectInput, hou.StickyNote))
 
 def findNearestNode(editor):
-    """Find the nearest node to the cursor position in current network."""
     try:
         pos = editor.cursorPosition()
         currentPath = editor.pwd().path()
@@ -289,7 +279,6 @@ def findNearestNode(editor):
 
         for n in nodes:
             try:
-                # position() is bottom-left-ish, size() is width/height
                 p = n.position()
                 s = n.size()
                 c = p + (s * 0.5)
@@ -306,7 +295,6 @@ def findNearestNode(editor):
 
 
 def cycleSwitchNodeInput(node):
-    """If node is a Switch-like node, advance its active input among connected inputs."""
     if not node or not isinstance(node, hou.Node):
         return False
 
@@ -314,7 +302,6 @@ def cycleSwitchNodeInput(node):
     if 'switch' not in node_type:
         return False
 
-    # Find the parameter controlling input index
     input_parm = None
     for parm_name in ('input', 'index', 'switch'):
         p = node.parm(parm_name)
@@ -323,7 +310,6 @@ def cycleSwitchNodeInput(node):
             break
 
     if input_parm is None:
-        # fallback: first int parm with input/index in its name
         for p in node.parms():
             try:
                 if p.parmTemplate().dataType() == hou.parmData.Int:
@@ -343,7 +329,6 @@ def cycleSwitchNodeInput(node):
         return False
 
     connected = []
-    # common: switches rarely exceed ~20 inputs; safe scan
     for i in range(64):
         try:
             if node.input(i) is not None:
@@ -376,18 +361,12 @@ def cycleSwitchNodeInput(node):
 
 
 def _maybeCycleSwitchOnCtrlLMB(uievent):
-    """
-    Additive behavior:
-    - If Ctrl+LMB on a node (or nearest node), cycle switch input.
-    - NEVER suppress: return value indicates if we did something, but caller must not suppress.
-    """
     try:
         if uievent.eventtype != 'mousedown':
             return False
         if not uievent.mousestate.lmb:
             return False
 
-        # exactly Ctrl only (matches your initial request)
         if not uievent.modifierstate.ctrl:
             return False
         if uievent.modifierstate.shift or uievent.modifierstate.alt:
@@ -395,7 +374,6 @@ def _maybeCycleSwitchOnCtrlLMB(uievent):
 
         node = None
 
-        # Prefer the hovered/selected item when available
         try:
             if hasattr(uievent, 'curitem') and isinstance(uievent.curitem, hou.Node):
                 node = uievent.curitem
@@ -421,19 +399,12 @@ def _maybeCycleSwitchOnCtrlLMB(uievent):
 
 
 def _maybeSetCtrlNodeOnCtrlLMB(uievent):
-    """
-    Additive behavior:
-    - If Ctrl+LMB on a null node starting with "CTRL", set it as control node.
-    - Only works if the node is not already the active control node.
-    - NEVER suppress: return value indicates if we did something, but caller must not suppress.
-    """
     try:
         if uievent.eventtype != 'mousedown':
             return False
         if not uievent.mousestate.lmb:
             return False
 
-        # Require Ctrl modifier
         if not uievent.modifierstate.ctrl:
             return False
         if uievent.modifierstate.shift or uievent.modifierstate.alt:
@@ -441,7 +412,6 @@ def _maybeSetCtrlNodeOnCtrlLMB(uievent):
 
         node = None
 
-        # Prefer the hovered/selected item when available
         try:
             if hasattr(uievent, 'curitem') and isinstance(uievent.curitem, hou.Node):
                 node = uievent.curitem
@@ -461,42 +431,29 @@ def _maybeSetCtrlNodeOnCtrlLMB(uievent):
         if not node or _isNonNodeThing(node):
             return False
 
-        # Check if it's a null node
         if node.type().name() != "null":
             return False
 
-        # Check if name starts with "CTRL" (case-insensitive)
         node_name = node.name()
-        if not node_name.upper().startswith("CTRL"):
+        if not node_name.upper().startswith(CTRL_BASE_NAME.upper()):
             return False
 
-        # Check if it's not already the active control node
-        current_ctrl_path = hou.getenv('ctrl_node')
+        current_ctrl_path = hou.getenv(ENV_CTRL_NODE)
         if current_ctrl_path and node.path() == current_ctrl_path:
             return False
 
-        # Set as control node
         try:
             node_path = node.path()
-            hou.hscript("set -g ctrl_node = {}".format(node_path))
-            
-            # Update colors (similar to ctrl_node_set function)
-            base_name = "CTRL"
-            color_curr = hou.Color((0.996, 0.682, 0.682))
-            color_prev = hou.Color((0.8, 0.2, 0.2))
+            hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
             
             for n in hou.node("/").allSubChildren():
-                if n.name().startswith(base_name) and n.path() != node_path:
-                    n.setColor(color_curr)
-                elif n.name().startswith(base_name) and n.path() == node_path:
-                    n.setColor(color_prev)
+                if n.name().startswith(CTRL_BASE_NAME) and n.path() != node_path:
+                    n.setColor(CTRL_COLOR_INACTIVE)
+                elif n.name().startswith(CTRL_BASE_NAME) and n.path() == node_path:
+                    n.setColor(CTRL_COLOR_ACTIVE)
             
-            # Force immediate UI update
             try:
-                # Trigger a visual refresh by setting current node (forces redraw)
-                # This ensures the editor redraws with the new colors
                 uievent.editor.setCurrentNode(node)
-                # Update the editor to refresh the view
                 uievent.editor.update()
             except Exception:
                 pass
@@ -508,10 +465,6 @@ def _maybeSetCtrlNodeOnCtrlLMB(uievent):
     except Exception:
         return False
 
-
-# =============================================================================
-# Reload watcher (your existing behavior)
-# =============================================================================
 
 this = sys.modules[__name__]
 currentdir = os.path.dirname(os.path.realpath(__file__))
@@ -528,24 +481,14 @@ fs_watcher.addPath(os.path.join(currentdir, "utility_hotkey_system.py"))
 fs_watcher.fileChanged.connect(__reload_pythonlibs)
 
 
-# =============================================================================
-# createEventHandler (UPDATED)
-# =============================================================================
-
 def createEventHandler(uievent, pending_actions):
     if not isinstance(uievent.editor, hou.NetworkEditor):
         return None, False
 
-    # --- ADDITIVE Ctrl+LMB handlers ---
-    # Check CTRL null nodes first, then switch nodes
-    # We do the action but NEVER suppress Houdini defaults.
-    # So even if action happened, we continue evaluating other handlers.
     ctrl_node_set = _maybeSetCtrlNodeOnCtrlLMB(uievent)
-    # Only cycle switch if we didn't set a CTRL node
     if not ctrl_node_set:
         _maybeCycleSwitchOnCtrlLMB(uievent)
 
-    # --- Your existing custom mouse actions (these DO suppress as before) ---
     if utility_ui.getSessionVariable("UseCustomMouseActions") and uievent.eventtype == 'mousedown':
         if uievent.mousestate.rmb:
             node = uievent.selected.item
@@ -564,7 +507,6 @@ def createEventHandler(uievent, pending_actions):
                     else:
                         utility_generic.selectDisplayNearestNodeInEditor(nearestNode=node)
 
-                    # Suppress the default action (keep your original intent)
                     return None, True
 
         elif uievent.mousestate.mmb:
@@ -575,7 +517,6 @@ def createEventHandler(uievent, pending_actions):
                 utility_ui.jumpUpOneLevel()
                 return None, True
 
-    # --- Your existing keyboard handling (unchanged) ---
     if isinstance(uievent, KeyboardEvent):
         key = utility_generic.getUnshiftedKey(uievent.key, uievent.modifierstate)
 
