@@ -445,6 +445,11 @@ def _maybeSetCtrlNodeOnCtrlLMB(uievent):
         try:
             node_path = node.path()
             hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
+            try:
+                if hasattr(hou, "session"):
+                    hou.session._CTRL_NODE_SID = node.sessionId()
+            except Exception:
+                pass
             
             for n in hou.node("/").allSubChildren():
                 if n.name().startswith(CTRL_BASE_NAME) and n.path() != node_path:

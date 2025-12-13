@@ -69,8 +69,22 @@ def _check_active_ctrl_exists(constants):
         active_path = hou.getenv(constants.ENV_CTRL_NODE) or ""
         if not active_path.strip():
             return
-        if hou.node(active_path) is None:
+        active_node = hou.node(active_path)
+        if active_node is None:
             hou.putenv(constants.ENV_CTRL_NODE, "")
+            try:
+                if hasattr(hou, "session") and hasattr(hou.session, "_CTRL_NODE_SID"):
+                    hou.session._CTRL_NODE_SID = None
+            except:
+                pass
+            return
+
+        # Cache the active CTRL node session id so we can reliably track it across renames.
+        try:
+            if hasattr(hou, "session"):
+                hou.session._CTRL_NODE_SID = active_node.sessionId()
+        except:
+            pass
     except:
         pass
 
@@ -80,17 +94,17 @@ def _update_active_ctrl_if_renamed(constants, node, old_name):
         active_path = hou.getenv(constants.ENV_CTRL_NODE) or ""
         if not active_path.strip():
             return
-
-        parent_path = node.parent().path()
-        old_path_guess = parent_path.rstrip("/") + "/" + (old_name or "").strip()
-
-        if old_path_guess and active_path == old_path_guess:
-            hou.putenv(constants.ENV_CTRL_NODE, node.path())
-            return
-
-        active_node = hou.node(active_path)
-        if active_node is not None and active_node.sessionId() == node.sessionId():
-            hou.putenv(constants.ENV_CTRL_NODE, node.path())
+        # Only update ENV_CTRL_NODE when THIS node is the active CTRL node.
+        # Do NOT use old_name path guessing here: duplication often uses the source name as "old_name"
+        # and can incorrectly hijack the active CTRL env var.
+        try:
+            active_sid = None
+            if hasattr(hou, "session"):
+                active_sid = getattr(hou.session, "_CTRL_NODE_SID", None)
+            if active_sid is not None and node.sessionId() == active_sid:
+                hou.putenv(constants.ENV_CTRL_NODE, node.path())
+        except:
+            pass
     except:
         pass
 

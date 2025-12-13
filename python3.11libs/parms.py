@@ -396,6 +396,11 @@ def ctrl_node_set(kwargs):
     def saveParmNodePath(node):
         node_path = node.path()
         hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
+        try:
+            if hasattr(hou, "session"):
+                hou.session._CTRL_NODE_SID = node.sessionId()
+        except:
+            pass
 
     autoRename(node, base_name)
     hideNullParms(node)

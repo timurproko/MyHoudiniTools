@@ -68,6 +68,17 @@ def _check_active_ctrl_exists(constants):
         node = hou.node(active_path)
         if node is None:
             hou.putenv(constants.ENV_CTRL_NODE, "")
+            try:
+                if hasattr(hou, "session") and hasattr(hou.session, "_CTRL_NODE_SID"):
+                    hou.session._CTRL_NODE_SID = None
+            except:
+                pass
+        else:
+            try:
+                if hasattr(hou, "session"):
+                    hou.session._CTRL_NODE_SID = node.sessionId()
+            except:
+                pass
     except:
         pass
 
@@ -101,7 +112,18 @@ try:
         _check_active_ctrl_exists(constants)
 
         active_path = hou.getenv(constants.ENV_CTRL_NODE) or ""
-        is_active = (active_path and me.path() == active_path)
+        # Duplicates can inherit the active CTRL color from the source node.
+        # Path comparison alone isn't enough; use sessionId to reliably detect the active node.
+        is_active = False
+        if active_path:
+            try:
+                active_node = hou.node(active_path)
+                if active_node is not None:
+                    is_active = (active_node.sessionId() == me.sessionId())
+                else:
+                    is_active = (me.path() == active_path)
+            except:
+                is_active = (me.path() == active_path)
 
         if is_active:
             _set_node_color(me, active_color)
