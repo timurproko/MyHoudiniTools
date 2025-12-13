@@ -1,11 +1,14 @@
 import hou
 import traceback
+import hou_module_loader
 
-# Node color policy:
-# - negate = 0 -> white
-# - negate = 1 -> grey
-NEGATE_OFF_COLOR = hou.Color((1.0, 1.0, 1.0))
-NEGATE_ON_COLOR = hou.Color((0.45, 0.45, 0.45))
+_split_consts = hou_module_loader.load_from_hou_path(
+    "scripts/sop/split_Constants.py",
+    "_mytools_split_constants",
+)
+
+NEGATE_OFF_COLOR = _split_consts.NEGATE_OFF_COLOR
+NEGATE_ON_COLOR = _split_consts.NEGATE_ON_COLOR
 
 
 def _debug_enabled():
@@ -28,7 +31,6 @@ def _is_valid_node(node):
 
 def _is_split(node):
     try:
-        # Node types can be versioned like "split::2.0"
         tname = node.type().name() or ""
         base = tname.split("::", 1)[0]
         return base == "split"
