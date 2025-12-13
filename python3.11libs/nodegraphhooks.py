@@ -508,18 +508,7 @@ def _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
 
         n = sel_name.lower()
 
-        flag_tokens = (
-            "flag",
-            "display",
-            "render",
-            "template",
-            "bypass",
-            "xray",
-            "select",
-            "freeze",
-            "lock",
-        )
-        return any(t in n for t in flag_tokens)
+        return "flag" in n
     except Exception:
         return False
 
@@ -586,9 +575,46 @@ def _shouldBlockDiveOnCtrlLMBDown(uievent):
         return False
 
 
+def _maybeToggleSplitInvertOnCtrlLMB(uievent):
+    try:
+        if uievent.eventtype != 'mousedown':
+            return False
+        if not uievent.mousestate.lmb:
+            return False
+        if not uievent.modifierstate.ctrl:
+            return False
+        if uievent.modifierstate.shift or uievent.modifierstate.alt:
+            return False
+
+        if _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
+            return False
+
+        node = _getNodeUnderMouseFromUIEvent(uievent)
+        if not node or _isNonNodeThing(node):
+            return False
+
+        tname = node.type().name() or ""
+        if tname.split("::", 1)[0] != "split":
+            return False
+
+        p = node.parm("negate")
+        if p is None:
+            return False
+
+        v = 1 if int(p.evalAsInt()) == 0 else 0
+        with hou.undos.group("Split: Toggle Invert Selection"):
+            p.set(v)
+        return True
+    except Exception:
+        return False
+
+
 def createEventHandler(uievent, pending_actions):
     if not isinstance(uievent.editor, hou.NetworkEditor):
         return None, False
+
+    if _maybeToggleSplitInvertOnCtrlLMB(uievent):
+        return None, True
 
     if _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
         ctrl_node_set = _maybeSetCtrlNodeOnCtrlLMB(uievent)
