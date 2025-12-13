@@ -11,11 +11,89 @@ import nodegraphutils as utils
 import nodegraphview as view
 from collections import defaultdict
 from canvaseventtypes import *
-from utility_ui import storeVisibleBounds
 
-import utility_ui
-import utility_generic
-import utility_hotkey_system
+
+_utility_ui = None
+try:
+    import utility_ui as _utility_ui
+except Exception:
+    _utility_ui = None
+
+def storeVisibleBounds(*_args, **_kwargs):
+    """No-op fallback when HotkeySystem is not available."""
+    try:
+        if _utility_ui and hasattr(_utility_ui, "storeVisibleBounds"):
+            return _utility_ui.storeVisibleBounds(*_args, **_kwargs)
+    except Exception:
+        pass
+    return None
+
+
+_utility_generic = None
+try:
+    import utility_generic as _utility_generic
+except Exception:
+    _utility_generic = None
+
+def _getUnshiftedKey_fallback(key, _modifierstate):
+    return key
+
+def _showNodeMenuNearestNodeInEditor_fallback():
+    try:
+        editor = hou.ui.paneTabUnderCursor()
+        if not editor or editor.type() != hou.paneTabType.NetworkEditor:
+            return
+        n = findNearestNode(editor)
+        if n:
+            editor.openNodeMenu(node=n)
+    except Exception:
+        pass
+
+def _selectDisplayNearestNodeInEditor_fallback(nearestNode=None):
+    try:
+        editor = hou.ui.paneTabUnderCursor()
+        if not editor or editor.type() != hou.paneTabType.NetworkEditor:
+            return
+        if nearestNode is None:
+            nearestNode = findNearestNode(editor)
+        if nearestNode and isinstance(nearestNode, hou.Node):
+            nearestNode.setSelected(True, clear_all_selected=True)
+    except Exception:
+        pass
+
+class _UtilityGenericProxy(object):
+    def getUnshiftedKey(self, key, modifierstate):
+        if _utility_generic and hasattr(_utility_generic, "getUnshiftedKey"):
+            try:
+                return _utility_generic.getUnshiftedKey(key, modifierstate)
+            except Exception:
+                pass
+        return _getUnshiftedKey_fallback(key, modifierstate)
+
+    def showNodeMenuNearestNodeInEditor(self):
+        if _utility_generic and hasattr(_utility_generic, "showNodeMenuNearestNodeInEditor"):
+            try:
+                return _utility_generic.showNodeMenuNearestNodeInEditor()
+            except Exception:
+                pass
+        return _showNodeMenuNearestNodeInEditor_fallback()
+
+    def selectDisplayNearestNodeInEditor(self, nearestNode=None):
+        if _utility_generic and hasattr(_utility_generic, "selectDisplayNearestNodeInEditor"):
+            try:
+                return _utility_generic.selectDisplayNearestNodeInEditor(nearestNode=nearestNode)
+            except Exception:
+                pass
+        return _selectDisplayNearestNodeInEditor_fallback(nearestNode=nearestNode)
+
+utility_generic = _UtilityGenericProxy()
+
+
+_utility_hotkey_system = None
+try:
+    import utility_hotkey_system as _utility_hotkey_system
+except Exception:
+    _utility_hotkey_system = None
 
 from PySide6 import QtCore, QtWidgets, QtGui
 import nodegraphbase as base
@@ -301,11 +379,20 @@ def __reload_pythonlibs(showstatus=True):
     if showstatus:
         print("Reloading hotkey system...")
     importlib.reload(this)
-    importlib.reload(utility_hotkey_system)
+    try:
+        if _utility_hotkey_system:
+            importlib.reload(_utility_hotkey_system)
+    except Exception:
+        pass
 
 fs_watcher = QtCore.QFileSystemWatcher()
 fs_watcher.addPath(os.path.join(currentdir, "nodegraphhooks.py"))
-fs_watcher.addPath(os.path.join(currentdir, "utility_hotkey_system.py"))
+try:
+    _uhs_path = os.path.join(currentdir, "utility_hotkey_system.py")
+    if os.path.exists(_uhs_path):
+        fs_watcher.addPath(_uhs_path)
+except Exception:
+    pass
 fs_watcher.fileChanged.connect(__reload_pythonlibs)
 
 def _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
@@ -413,7 +500,14 @@ def createEventHandler(uievent, pending_actions):
         return None, True
 
 
-    if utility_ui.getSessionVariable("UseCustomMouseActions") and uievent.eventtype == 'mousedown':
+    use_custom_mouse_actions = False
+    try:
+        if _utility_ui and hasattr(_utility_ui, "getSessionVariable"):
+            use_custom_mouse_actions = bool(_utility_ui.getSessionVariable("UseCustomMouseActions"))
+    except Exception:
+        use_custom_mouse_actions = False
+
+    if use_custom_mouse_actions and uievent.eventtype == 'mousedown':
         if uievent.mousestate.rmb:
             node = uievent.selected.item
             if (
@@ -435,11 +529,19 @@ def createEventHandler(uievent, pending_actions):
 
         elif uievent.mousestate.mmb:
             if uievent.modifierstate.shift:
-                utility_ui.diveInsideNearestNode()
-                return None, True
+                try:
+                    if _utility_ui and hasattr(_utility_ui, "diveInsideNearestNode"):
+                        _utility_ui.diveInsideNearestNode()
+                        return None, True
+                except Exception:
+                    pass
             elif uievent.modifierstate.ctrl:
-                utility_ui.jumpUpOneLevel()
-                return None, True
+                try:
+                    if _utility_ui and hasattr(_utility_ui, "jumpUpOneLevel"):
+                        _utility_ui.jumpUpOneLevel()
+                        return None, True
+                except Exception:
+                    pass
 
     if isinstance(uievent, KeyboardEvent):
         key = utility_generic.getUnshiftedKey(uievent.key, uievent.modifierstate)
@@ -451,6 +553,10 @@ def createEventHandler(uievent, pending_actions):
                 return None, True
 
         if uievent.eventtype == 'keyhit':
-            return utility_hotkey_system.invokeActionFromKey(uievent)
+            try:
+                if _utility_hotkey_system and hasattr(_utility_hotkey_system, "invokeActionFromKey"):
+                    return _utility_hotkey_system.invokeActionFromKey(uievent)
+            except Exception:
+                pass
 
     return None, False
