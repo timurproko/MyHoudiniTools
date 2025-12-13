@@ -8,6 +8,7 @@ _HOOK_SPECS = (
     ("_mytools_hook_split", "scripts/sop/nodehooks/split.py"),
     ("_mytools_hook_switch", "scripts/sop/nodehooks/switch.py"),
     ("_mytools_hook_null", "scripts/sop/nodehooks/null.py"),
+    ("_mytools_hook_color", "scripts/sop/nodehooks/color.py"),
 )
 
 
