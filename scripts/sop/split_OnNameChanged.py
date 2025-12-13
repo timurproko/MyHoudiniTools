@@ -3,7 +3,7 @@ import traceback
 import hou_module_loader
 
 _split_consts = hou_module_loader.load_from_hou_path(
-    "scripts/sop/split_Constants.py",
+    "scripts/sop/constants/split.py",
     "_mytools_split_constants",
 )
 

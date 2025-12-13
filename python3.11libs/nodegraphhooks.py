@@ -20,7 +20,7 @@ import utility_hotkey_system
 from PySide6 import QtCore, QtWidgets, QtGui
 import nodegraphbase as base
 import nodegraphstates as states
-from constants import CTRL_BASE_NAME, CTRL_COLOR_ACTIVE, CTRL_COLOR_INACTIVE, ENV_CTRL_NODE
+import nodehook_dispatch
 
 
 class PendingAction(object):
@@ -294,183 +294,6 @@ def findNearestNode(editor):
         return None
 
 
-def cycleSwitchNodeInput(node):
-    if not node or not isinstance(node, hou.Node):
-        return False
-
-    node_type = node.type().name().lower()
-    if 'switch' not in node_type:
-        return False
-
-    input_parm = None
-    for parm_name in ('input', 'index', 'switch'):
-        p = node.parm(parm_name)
-        if p is not None:
-            input_parm = p
-            break
-
-    if input_parm is None:
-        for p in node.parms():
-            try:
-                if p.parmTemplate().dataType() == hou.parmData.Int:
-                    n = p.name().lower()
-                    if 'input' in n or 'index' in n:
-                        input_parm = p
-                        break
-            except Exception:
-                continue
-
-    if input_parm is None:
-        return False
-
-    try:
-        current_input = int(input_parm.evalAsInt())
-    except Exception:
-        return False
-
-    connected = []
-    for i in range(64):
-        try:
-            if node.input(i) is not None:
-                connected.append(i)
-        except IndexError:
-            break
-        except Exception:
-            continue
-
-    if len(connected) < 2:
-        return False
-
-    connected.sort()
-
-    try:
-        if current_input in connected:
-            idx = connected.index(current_input)
-            next_input = connected[(idx + 1) % len(connected)]
-        else:
-            next_input = connected[0]
-    except Exception:
-        next_input = connected[0]
-
-    try:
-        with hou.undos.group("Cycle Switch Input"):
-            input_parm.set(next_input)
-        return True
-    except Exception:
-        return False
-
-
-def _maybeCycleSwitchOnCtrlLMB(uievent):
-    try:
-        if uievent.eventtype != 'mousedown':
-            return False
-        if not uievent.mousestate.lmb:
-            return False
-
-        if not uievent.modifierstate.ctrl:
-            return False
-        if uievent.modifierstate.shift or uievent.modifierstate.alt:
-            return False
-
-        node = None
-
-        try:
-            if hasattr(uievent, 'curitem') and isinstance(uievent.curitem, hou.Node):
-                node = uievent.curitem
-        except Exception:
-            pass
-
-        if node is None:
-            try:
-                if hasattr(uievent, 'selected') and uievent.selected and isinstance(uievent.selected.item, hou.Node):
-                    node = uievent.selected.item
-            except Exception:
-                pass
-
-        if node is None:
-            node = findNearestNode(uievent.editor)
-
-        if not node or _isNonNodeThing(node):
-            return False
-
-        return cycleSwitchNodeInput(node)
-    except Exception:
-        return False
-
-
-def _maybeSetCtrlNodeOnCtrlLMB(uievent):
-    try:
-        if uievent.eventtype != 'mousedown':
-            return False
-        if not uievent.mousestate.lmb:
-            return False
-
-        if not uievent.modifierstate.ctrl:
-            return False
-        if uievent.modifierstate.shift or uievent.modifierstate.alt:
-            return False
-
-        node = None
-
-        try:
-            if hasattr(uievent, 'curitem') and isinstance(uievent.curitem, hou.Node):
-                node = uievent.curitem
-        except Exception:
-            pass
-
-        if node is None:
-            try:
-                if hasattr(uievent, 'selected') and uievent.selected and isinstance(uievent.selected.item, hou.Node):
-                    node = uievent.selected.item
-            except Exception:
-                pass
-
-        if node is None:
-            node = findNearestNode(uievent.editor)
-
-        if not node or _isNonNodeThing(node):
-            return False
-
-        if node.type().name() != "null":
-            return False
-
-        node_name = node.name()
-        if not node_name.upper().startswith(CTRL_BASE_NAME.upper()):
-            return False
-
-        current_ctrl_path = hou.getenv(ENV_CTRL_NODE)
-        if current_ctrl_path and node.path() == current_ctrl_path:
-            return False
-
-        try:
-            node_path = node.path()
-            hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
-            try:
-                if hasattr(hou, "session"):
-                    hou.session._CTRL_NODE_SID = node.sessionId()
-            except Exception:
-                pass
-            
-            for n in hou.node("/").allSubChildren():
-                if n.name().startswith(CTRL_BASE_NAME) and n.path() != node_path:
-                    n.setColor(CTRL_COLOR_INACTIVE)
-                elif n.name().startswith(CTRL_BASE_NAME) and n.path() == node_path:
-                    n.setColor(CTRL_COLOR_ACTIVE)
-            
-            try:
-                uievent.editor.setCurrentNode(node)
-                uievent.editor.update()
-            except Exception:
-                pass
-            
-            return True
-        except Exception:
-            return False
-
-    except Exception:
-        return False
-
-
 this = sys.modules[__name__]
 currentdir = os.path.dirname(os.path.realpath(__file__))
 
@@ -575,51 +398,24 @@ def _shouldBlockDiveOnCtrlLMBDown(uievent):
         return False
 
 
-def _maybeToggleSplitInvertOnCtrlLMB(uievent):
-    try:
-        if uievent.eventtype != 'mousedown':
-            return False
-        if not uievent.mousestate.lmb:
-            return False
-        if not uievent.modifierstate.ctrl:
-            return False
-        if uievent.modifierstate.shift or uievent.modifierstate.alt:
-            return False
-
-        if _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
-            return False
-
-        node = _getNodeUnderMouseFromUIEvent(uievent)
-        if not node or _isNonNodeThing(node):
-            return False
-
-        tname = node.type().name() or ""
-        if tname.split("::", 1)[0] != "split":
-            return False
-
-        p = node.parm("negate")
-        if p is None:
-            return False
-
-        v = 1 if int(p.evalAsInt()) == 0 else 0
-        with hou.undos.group("Split: Toggle Invert Selection"):
-            p.set(v)
-        return True
-    except Exception:
-        return False
-
-
 def createEventHandler(uievent, pending_actions):
     if not isinstance(uievent.editor, hou.NetworkEditor):
         return None, False
 
-    if _maybeToggleSplitInvertOnCtrlLMB(uievent):
+    ctx = {
+        "get_node_under_mouse": _getNodeUnderMouseFromUIEvent,
+        "is_non_node": _isNonNodeThing,
+        "is_flag_click": _shouldBlockNodeFlagClickOnCtrlLMB,
+        "find_nearest_node": findNearestNode,
+    }
+
+    nodehook_dispatch.ensure_on_mousedown(uievent, ctx)
+
+    if nodehook_dispatch.handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
         return None, True
 
     if _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
-        ctrl_node_set = _maybeSetCtrlNodeOnCtrlLMB(uievent)
-        if not ctrl_node_set:
-            _maybeCycleSwitchOnCtrlLMB(uievent)
+        nodehook_dispatch.handle_ctrl_lmb(uievent, ctx, allow_flag_click=True)
         return None, True
 
     if _shouldBlockDiveOnCtrlLMBDown(uievent):
@@ -630,9 +426,6 @@ def createEventHandler(uievent, pending_actions):
             pass
         return None, True
 
-    ctrl_node_set = _maybeSetCtrlNodeOnCtrlLMB(uievent)
-    if not ctrl_node_set:
-        _maybeCycleSwitchOnCtrlLMB(uievent)
 
     if utility_ui.getSessionVariable("UseCustomMouseActions") and uievent.eventtype == 'mousedown':
         if uievent.mousestate.rmb:
