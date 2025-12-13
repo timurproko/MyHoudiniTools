@@ -15,10 +15,10 @@ ENV_MULTIPARM_NODE = _consts.ENV_MULTIPARM_NODE
 
 
 class HoudiniError(Exception):
-    """Display message in houdini"""
+    pass
 
+    
 def allParmTemplateNames(group_or_folder: hou.ParmTemplateGroup) -> Iterable[str]:
-    '''Generator of parm names'''
     for parm_template in group_or_folder.parmTemplates():
         yield parm_template.name()
         if parm_template.type() == hou.parmTemplateType.Folder:
@@ -89,7 +89,6 @@ class parmUtils():
 
     @staticmethod
     def findFolderContainingParm(group: hou.ParmTemplateGroup, parm_name: str) -> Optional[hou.FolderParmTemplate]:
-        """Find the folder that contains a parameter with the given name"""
         def searchInFolder(folder: hou.FolderParmTemplate) -> Optional[hou.FolderParmTemplate]:
             for template in folder.parmTemplates():
                 if template.name() == parm_name:
@@ -109,7 +108,6 @@ class parmUtils():
 
     @staticmethod
     def findFolderByName(group: hou.ParmTemplateGroup, folder_name: str) -> Optional[hou.FolderParmTemplate]:
-        """Find a folder by name, searching recursively through all folders including nested ones"""
         def searchRecursive(folder: hou.FolderParmTemplate) -> Optional[hou.FolderParmTemplate]:
             if folder.name() == folder_name:
                 return folder
@@ -325,12 +323,10 @@ class parmUtils():
 
     @staticmethod
     def removeFolders(kwargs):
-        """Remove all folders from parameter template group while keeping all spare parameters"""
         node = kwargs["node"]
         group = node.parmTemplateGroup()
         
         def extractTemplates(templates):
-            """Recursively extract all non-folder templates from folders"""
             result = []
             for template in templates:
                 if isinstance(template, hou.FolderParmTemplate):
@@ -350,11 +346,6 @@ class parmUtils():
 
 
 def updateCtrlNodeColors():
-    """
-    Updates colors for all CTRL nodes based on the active ctrl_node environment variable.
-    Active node gets darker color, inactive nodes get lighter color.
-    This is a modular function that can be called from anywhere.
-    """
     try:
         active_ctrl_path = hou.getenv(ENV_CTRL_NODE) or ""
         
@@ -369,7 +360,6 @@ def updateCtrlNodeColors():
 
 
 def hideNullParms(node):
-    """Hide copyinput and cacheinput parameters for SOP null nodes."""
     if isinstance(node, hou.SopNode):
         parm_group = node.parmTemplateGroup()
         copyinput_template = parm_group.find("copyinput")

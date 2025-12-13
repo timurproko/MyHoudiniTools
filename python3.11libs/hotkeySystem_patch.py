@@ -3,6 +3,55 @@ import inspect
 import sys
 
 
+def _patch_nodegraphhooks_ctrl_mmb():
+    try:
+        try:
+            import nodegraphhooks
+        except Exception:
+            return
+
+        m = sys.modules.get("nodegraphhooks")
+        if not m:
+            return
+
+        orig = getattr(m, "createEventHandler", None)
+        if not callable(orig):
+            return
+
+        if getattr(orig, "_mytools_patched_ctrl_mmb", False):
+            return
+        if hasattr(m, "_mytools_orig_createEventHandler"):
+            return
+
+        returns_tuple = False
+        try:
+            src = inspect.getsource(orig) or ""
+            returns_tuple = ("return None, False" in src) or ("return None, True" in src)
+        except Exception:
+            returns_tuple = False
+
+        def _is_ctrl_mmb_down(uievent):
+            try:
+                if getattr(uievent, "eventtype", None) != "mousedown":
+                    return False
+                ms = getattr(uievent, "mousestate", None)
+                mods = getattr(uievent, "modifierstate", None)
+                return bool(getattr(ms, "mmb", False) and getattr(mods, "ctrl", False))
+            except Exception:
+                return False
+
+        def createEventHandler(uievent, pending_actions):
+            if _is_ctrl_mmb_down(uievent):
+                return (None, False) if returns_tuple else None
+            return orig(uievent, pending_actions)
+
+        createEventHandler._mytools_patched_ctrl_mmb = True
+        m._mytools_orig_createEventHandler = orig
+        m.createEventHandler = createEventHandler
+    except Exception:
+        pass
+
+
 def flagSelectNearestNode(uievent, flag, select=0):
     from utility_generic import findNearestNode
 
@@ -138,6 +187,8 @@ def init():
         pass
     except Exception as e:
         pass
+
+    _patch_nodegraphhooks_ctrl_mmb()
     
     _initialized = True
 

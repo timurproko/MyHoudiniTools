@@ -75,7 +75,6 @@ def _negate_changed(node, event_type, **kwargs):
 
 
 def _ensure(node):
-    """OnUpdated runs on cooks/refreshes, which also covers many duplicate/paste flows."""
     try:
         if not _is_valid_node(node) or not _is_split(node):
             return

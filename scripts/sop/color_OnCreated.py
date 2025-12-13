@@ -1,18 +1,11 @@
-import hou
-import traceback
-def color_changed(node, event_type, **kwargs):
-    parm_tuple = kwargs['parm_tuple']
-    if parm_tuple is not None:
-        if parm_tuple.name() == "color":
-            color = parm_tuple.eval()
-            hcolor = hou.Color(color)
-            try:
-                node.setColor(hcolor)
-            except:
-                pass
+import hou_module_loader
+
+_color = hou_module_loader.load_from_hou_path(
+    "scripts/sop/scripts/color.py",
+    "_mytools_sop_color_script",
+)
+
 try:
-    me = kwargs['node']
-    if me is not None:
-        me.addEventCallback((hou.nodeEventType.ParmTupleChanged, ), color_changed)
-except:
-    print(traceback.format_exc())
+    _color.ensure_installed(kwargs.get("node"))
+except Exception:
+    pass
