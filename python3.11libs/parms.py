@@ -1,6 +1,11 @@
 from typing import Iterable, Optional, Tuple, Generator
 import hou, itertools, re
 
+# CTRL node constants
+CTRL_BASE_NAME = "CTRL"
+CTRL_COLOR_INACTIVE = hou.Color((0.996, 0.682, 0.682))  # Lighter red
+CTRL_COLOR_ACTIVE = hou.Color((0.8, 0.2, 0.2))  # Darker red
+
 
 class HoudiniError(Exception):
     """Display message in houdini"""
@@ -337,13 +342,45 @@ class parmUtils():
 
 
 
+def updateCtrlNodeColors():
+    """
+    Updates colors for all CTRL nodes based on the active ctrl_node environment variable.
+    Active node gets darker color, inactive nodes get lighter color.
+    This is a modular function that can be called from anywhere.
+    """
+    try:
+        active_ctrl_path = hou.getenv('ctrl_node') or ""
+        
+        for node in hou.node("/").allSubChildren():
+            if node.name().startswith(CTRL_BASE_NAME):
+                if active_ctrl_path and node.path() == active_ctrl_path:
+                    node.setColor(CTRL_COLOR_ACTIVE)
+                else:
+                    node.setColor(CTRL_COLOR_INACTIVE)
+    except Exception:
+        pass
+
+
+def hideNullParms(node):
+    """Hide copyinput and cacheinput parameters for SOP null nodes."""
+    if isinstance(node, hou.SopNode):
+        parm_group = node.parmTemplateGroup()
+        copyinput_template = parm_group.find("copyinput")
+        cacheinput_template = parm_group.find("cacheinput")
+        if copyinput_template is not None:
+            copyinput_template.hide(True)
+            parm_group.replace("copyinput", copyinput_template)
+        if cacheinput_template is not None:
+            cacheinput_template.hide(True)
+            parm_group.replace("cacheinput", cacheinput_template)
+        node.setParmTemplateGroup(parm_group)
+
+
 def ctrl_node_set(kwargs):
     node_path = kwargs['node'].path()
     node = hou.node(node_path)
-    base_name = "CTRL"
+    base_name = CTRL_BASE_NAME
     node_index = 1
-    color_curr = hou.Color((0.996, 0.682, 0.682))
-    color_prev = hou.Color((0.8, 0.2, 0.2))
 
     def autoRename(node, base_name):
         if node.name().startswith(base_name):
@@ -360,38 +397,14 @@ def ctrl_node_set(kwargs):
                 except ValueError:
                     pass
 
-    def hideNullParms(node):
-        if type(node) == hou.SopNode:
-            parms = node.parmTemplateGroup()
-            copyinput_template = parms.find("copyinput")
-            cacheinput_template = parms.find("cacheinput")
-            if copyinput_template is not None:
-                copyinput_template.hide(True)
-            if cacheinput_template is not None:
-                cacheinput_template.hide(True)
-            if copyinput_template is not None:
-                parms.replace("copyinput", copyinput_template)
-            if cacheinput_template is not None:
-                parms.replace("cacheinput", cacheinput_template)
-            node.setParmTemplateGroup(parms)
-
     def saveParmNodePath(node):
         node_path = node.path()
         hou.hscript("set -g ctrl_node = {}".format(node_path))
 
-    def setParmNodeColor(node):
-        ctrl_node = hou.getenv('ctrl_node')
-
-        for node in hou.node("/").allSubChildren():
-            if node.name().startswith(base_name) and node.path() != ctrl_node:
-                node.setColor(color_curr)
-            elif node.name().startswith(base_name) and node.path() == ctrl_node:
-                node.setColor(color_prev)
-
     autoRename(node, base_name)
     hideNullParms(node)
     saveParmNodePath(node)
-    setParmNodeColor(node)
+    updateCtrlNodeColors()
 
 
 
