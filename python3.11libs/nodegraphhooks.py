@@ -486,13 +486,6 @@ fs_watcher.addPath(os.path.join(currentdir, "utility_hotkey_system.py"))
 fs_watcher.fileChanged.connect(__reload_pythonlibs)
 
 def _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
-    """
-    Block Ctrl+LMB clicks on node flag widgets (display/render/template/bypass/etc)
-    so the current node flags never change from accidental Ctrl-clicks.
-
-    We rely on Houdini's canvas pick metadata (`uievent.selected.name`) which
-    identifies the sub-element under the mouse (node body vs flag button).
-    """
     try:
         if uievent.eventtype != 'mousedown':
             return False
@@ -531,6 +524,68 @@ def _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
         return False
 
 
+def _getNodeUnderMouseFromUIEvent(uievent):
+    try:
+        if hasattr(uievent, 'curitem') and isinstance(uievent.curitem, hou.Node):
+            return uievent.curitem
+    except Exception:
+        pass
+
+    try:
+        sel = getattr(uievent, 'selected', None)
+        if sel and isinstance(getattr(sel, 'item', None), hou.Node):
+            return sel.item
+    except Exception:
+        pass
+
+    try:
+        return findNearestNode(uievent.editor)
+    except Exception:
+        return None
+
+
+def _nodeHasInsideContent(node):
+    try:
+        if not node or not isinstance(node, hou.Node):
+            return False
+        return len(node.children()) > 0
+    except Exception:
+        return False
+
+
+def _toggleNodeSelection(node):
+    try:
+        if not node or not isinstance(node, hou.Node):
+            return False
+        node.setSelected(not node.isSelected(), clear_all_selected=False)
+        return True
+    except Exception:
+        return False
+
+
+def _shouldBlockDiveOnCtrlLMBDown(uievent):
+    try:
+        if uievent.eventtype != 'mousedown':
+            return False
+        if not uievent.mousestate.lmb:
+            return False
+        if not uievent.modifierstate.ctrl:
+            return False
+        if uievent.modifierstate.shift or uievent.modifierstate.alt:
+            return False
+
+        if _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
+            return False
+
+        node = _getNodeUnderMouseFromUIEvent(uievent)
+        if not node or _isNonNodeThing(node):
+            return False
+
+        return _nodeHasInsideContent(node)
+    except Exception:
+        return False
+
+
 def createEventHandler(uievent, pending_actions):
     if not isinstance(uievent.editor, hou.NetworkEditor):
         return None, False
@@ -539,6 +594,14 @@ def createEventHandler(uievent, pending_actions):
         ctrl_node_set = _maybeSetCtrlNodeOnCtrlLMB(uievent)
         if not ctrl_node_set:
             _maybeCycleSwitchOnCtrlLMB(uievent)
+        return None, True
+
+    if _shouldBlockDiveOnCtrlLMBDown(uievent):
+        try:
+            node = _getNodeUnderMouseFromUIEvent(uievent)
+            _toggleNodeSelection(node)
+        except Exception:
+            pass
         return None, True
 
     ctrl_node_set = _maybeSetCtrlNodeOnCtrlLMB(uievent)
