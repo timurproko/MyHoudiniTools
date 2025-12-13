@@ -11,7 +11,6 @@ def _import_constants():
     except ImportError:
         pass
 
-    # fallback: scan HOUDINI_USER_PREF_DIR/packages/**/python3.11libs
     houdini_pref_dir = hou.getenv("HOUDINI_USER_PREF_DIR")
     if houdini_pref_dir:
         packages_dir = os.path.join(houdini_pref_dir, "packages")
@@ -31,7 +30,6 @@ def _import_constants():
 
 
 def _defer(fn):
-    """Run after Houdini finishes rename/duplicate UI updates."""
     try:
         if hasattr(hou, "ui") and hou.ui is not None:
             try:
@@ -57,34 +55,42 @@ def _defer(fn):
         else:
             fn()
     except:
-        # never hard fail callbacks
         pass
 
 
-def _refresh_active_ctrl_env(constants):
-    """
-    If ENV_CTRL_NODE_ID exists, find that node by session id and refresh ENV_CTRL_NODE path.
-    Also clears env if the node no longer exists.
-    """
+def _check_active_ctrl_exists(constants):
     try:
-        sid_str = hou.getenv(constants.ENV_CTRL_NODE_ID) or ""
-        if not sid_str.strip():
+        active_path = hou.getenv(constants.ENV_CTRL_NODE) or ""
+        if not active_path.strip():
             return
 
-        try:
-            sid = int(sid_str)
-        except:
-            return
-
-        node = hou.nodeBySessionId(sid)
+        node = hou.node(active_path)
         if node is None:
-            # active node disappeared; clear env
             hou.putenv(constants.ENV_CTRL_NODE, "")
-            hou.putenv(constants.ENV_CTRL_NODE_ID, "")
+    except:
+        pass
+
+
+def _update_active_ctrl_if_renamed(constants, renamed_node):
+    try:
+        active_path = hou.getenv(constants.ENV_CTRL_NODE) or ""
+        if not active_path.strip():
             return
 
-        # update path to the new name/path
-        hou.putenv(constants.ENV_CTRL_NODE, node.path())
+        old_node = hou.node(active_path)
+        
+        if old_node is not None:
+            if old_node.sessionId() == renamed_node.sessionId():
+                hou.putenv(constants.ENV_CTRL_NODE, renamed_node.path())
+        else:
+            try:
+                stored_parent_path = "/".join(active_path.split("/")[:-1])
+                renamed_parent_path = renamed_node.parent().path()
+                
+                if stored_parent_path == renamed_parent_path:
+                    hou.putenv(constants.ENV_CTRL_NODE, renamed_node.path())
+            except:
+                pass
     except:
         pass
 
@@ -105,7 +111,6 @@ try:
     if me is None:
         raise SystemExit
 
-    # only CTRL nulls
     if me.type().name() != "null":
         raise SystemExit
 
@@ -116,8 +121,8 @@ try:
     active_color = constants.CTRL_COLOR_ACTIVE
 
     def _apply():
-        # First: refresh env path from stable id (handles rename of active node)
-        _refresh_active_ctrl_env(constants)
+        _update_active_ctrl_if_renamed(constants, me)
+        _check_active_ctrl_exists(constants)
 
         active_path = hou.getenv(constants.ENV_CTRL_NODE) or ""
         is_active = (active_path and me.path() == active_path)

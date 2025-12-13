@@ -20,7 +20,7 @@ import utility_hotkey_system
 from PySide6 import QtCore, QtWidgets, QtGui
 import nodegraphbase as base
 import nodegraphstates as states
-from constants import CTRL_BASE_NAME, CTRL_COLOR_ACTIVE, CTRL_COLOR_INACTIVE, ENV_CTRL_NODE, ENV_CTRL_NODE_ID
+from constants import CTRL_BASE_NAME, CTRL_COLOR_ACTIVE, CTRL_COLOR_INACTIVE, ENV_CTRL_NODE
 
 
 class PendingAction(object):
@@ -444,9 +444,7 @@ def _maybeSetCtrlNodeOnCtrlLMB(uievent):
 
         try:
             node_path = node.path()
-            node_session_id = str(node.sessionId())
             hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
-            hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE_ID, node_session_id))
             
             for n in hou.node("/").allSubChildren():
                 if n.name().startswith(CTRL_BASE_NAME) and n.path() != node_path:
