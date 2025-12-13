@@ -86,8 +86,9 @@ def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
         if uievent.modifierstate.shift or uievent.modifierstate.alt:
             return False
 
-        # Never toggle Split when user is ctrl-clicking flag widgets.
-        if ctx["is_flag_click"](uievent):
+        # Match convention used by other hooks: block flag clicks unless explicitly allowed
+        # (nodegraphhooks will retry with allow_flag_click=True).
+        if (not allow_flag_click) and ctx["is_flag_click"](uievent):
             return False
 
         node = ctx["get_node_under_mouse"](uievent)
