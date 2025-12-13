@@ -420,6 +420,95 @@ def _maybeCycleSwitchOnCtrlLMB(uievent):
         return False
 
 
+def _maybeSetCtrlNodeOnCtrlLMB(uievent):
+    """
+    Additive behavior:
+    - If Ctrl+LMB on a null node starting with "CTRL", set it as control node.
+    - Only works if the node is not already the active control node.
+    - NEVER suppress: return value indicates if we did something, but caller must not suppress.
+    """
+    try:
+        if uievent.eventtype != 'mousedown':
+            return False
+        if not uievent.mousestate.lmb:
+            return False
+
+        # Require Ctrl modifier
+        if not uievent.modifierstate.ctrl:
+            return False
+        if uievent.modifierstate.shift or uievent.modifierstate.alt:
+            return False
+
+        node = None
+
+        # Prefer the hovered/selected item when available
+        try:
+            if hasattr(uievent, 'curitem') and isinstance(uievent.curitem, hou.Node):
+                node = uievent.curitem
+        except Exception:
+            pass
+
+        if node is None:
+            try:
+                if hasattr(uievent, 'selected') and uievent.selected and isinstance(uievent.selected.item, hou.Node):
+                    node = uievent.selected.item
+            except Exception:
+                pass
+
+        if node is None:
+            node = findNearestNode(uievent.editor)
+
+        if not node or _isNonNodeThing(node):
+            return False
+
+        # Check if it's a null node
+        if node.type().name() != "null":
+            return False
+
+        # Check if name starts with "CTRL" (case-insensitive)
+        node_name = node.name()
+        if not node_name.upper().startswith("CTRL"):
+            return False
+
+        # Check if it's not already the active control node
+        current_ctrl_path = hou.getenv('ctrl_node')
+        if current_ctrl_path and node.path() == current_ctrl_path:
+            return False
+
+        # Set as control node
+        try:
+            node_path = node.path()
+            hou.hscript("set -g ctrl_node = {}".format(node_path))
+            
+            # Update colors (similar to ctrl_node_set function)
+            base_name = "CTRL"
+            color_curr = hou.Color((0.996, 0.682, 0.682))
+            color_prev = hou.Color((0.8, 0.2, 0.2))
+            
+            for n in hou.node("/").allSubChildren():
+                if n.name().startswith(base_name) and n.path() != node_path:
+                    n.setColor(color_curr)
+                elif n.name().startswith(base_name) and n.path() == node_path:
+                    n.setColor(color_prev)
+            
+            # Force immediate UI update
+            try:
+                # Trigger a visual refresh by setting current node (forces redraw)
+                # This ensures the editor redraws with the new colors
+                uievent.editor.setCurrentNode(node)
+                # Update the editor to refresh the view
+                uievent.editor.update()
+            except Exception:
+                pass
+            
+            return True
+        except Exception:
+            return False
+
+    except Exception:
+        return False
+
+
 # =============================================================================
 # Reload watcher (your existing behavior)
 # =============================================================================
@@ -447,10 +536,14 @@ def createEventHandler(uievent, pending_actions):
     if not isinstance(uievent.editor, hou.NetworkEditor):
         return None, False
 
-    # --- ADDITIVE Ctrl+LMB switch cycler ---
+    # --- ADDITIVE Ctrl+LMB handlers ---
+    # Check CTRL null nodes first, then switch nodes
     # We do the action but NEVER suppress Houdini defaults.
-    # So even if cycling happened, we continue evaluating other handlers.
-    _maybeCycleSwitchOnCtrlLMB(uievent)
+    # So even if action happened, we continue evaluating other handlers.
+    ctrl_node_set = _maybeSetCtrlNodeOnCtrlLMB(uievent)
+    # Only cycle switch if we didn't set a CTRL node
+    if not ctrl_node_set:
+        _maybeCycleSwitchOnCtrlLMB(uievent)
 
     # --- Your existing custom mouse actions (these DO suppress as before) ---
     if utility_ui.getSessionVariable("UseCustomMouseActions") and uievent.eventtype == 'mousedown':
