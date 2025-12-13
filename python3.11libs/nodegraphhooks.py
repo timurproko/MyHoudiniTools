@@ -356,15 +356,6 @@ def _getNodeUnderMouseFromUIEvent(uievent):
         return None
 
 
-def _nodeHasInsideContent(node):
-    try:
-        if not node or not isinstance(node, hou.Node):
-            return False
-        return len(node.children()) > 0
-    except Exception:
-        return False
-
-
 def _toggleNodeSelection(node):
     try:
         if not node or not isinstance(node, hou.Node):
@@ -393,7 +384,7 @@ def _shouldBlockDiveOnCtrlLMBDown(uievent):
         if not node or _isNonNodeThing(node):
             return False
 
-        return _nodeHasInsideContent(node)
+        return True
     except Exception:
         return False
 
