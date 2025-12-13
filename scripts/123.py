@@ -21,7 +21,7 @@ hou.node('/obj').createNode('geo', 'geo').setSelected(True, True)
 
 
 # Turn on AutoSave
-hou.appendSessionModuleSource('''hou.hscript("autosave on")''')
+# hou.appendSessionModuleSource('''hou.hscript("autosave on")''')
 
 
 # Hide on Startup
