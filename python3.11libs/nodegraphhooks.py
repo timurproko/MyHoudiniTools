@@ -410,11 +410,6 @@ def createEventHandler(uievent, pending_actions):
         return None, True
 
     if _shouldBlockDiveOnCtrlLMBDown(uievent):
-        try:
-            node = _getNodeUnderMouseFromUIEvent(uievent)
-            _toggleNodeSelection(node)
-        except Exception:
-            pass
         return None, True
 
 
