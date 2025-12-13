@@ -3,8 +3,8 @@ import hou, itertools, re
 
 # CTRL node constants
 CTRL_BASE_NAME = "CTRL"
-CTRL_COLOR_INACTIVE = hou.Color((0.996, 0.682, 0.682))  # Lighter red
-CTRL_COLOR_ACTIVE = hou.Color((0.8, 0.2, 0.2))  # Darker red
+CTRL_COLOR_ACTIVE = hou.Color((0.8, 0.2, 0.2))
+CTRL_COLOR_INACTIVE = hou.Color((0.996, 0.682, 0.682))
 
 
 class HoudiniError(Exception):
