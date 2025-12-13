@@ -24,7 +24,7 @@ def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
         if uievent.modifierstate.shift or uievent.modifierstate.alt:
             return False
 
-        if (not allow_flag_click) and ctx["is_flag_click"](uievent):
+        if ctx["is_flag_click"](uievent):
             return False
 
         node = ctx["get_node_under_mouse"](uievent) or ctx["find_nearest_node"](uievent.editor)
@@ -51,7 +51,6 @@ def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
             except Exception:
                 pass
 
-        # Update colors immediately for fast feedback
         for n in hou.node("/").allSubChildren():
             if n.name().startswith(CTRL_BASE_NAME) and n.path() != node_path:
                 n.setColor(CTRL_COLOR_INACTIVE)

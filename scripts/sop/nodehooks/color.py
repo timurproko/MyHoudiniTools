@@ -15,10 +15,6 @@ def _is_color_sop(node: hou.Node) -> bool:
 
 
 def randomConstantColor(node: hou.Node) -> bool:
-    """
-    Randomize the Color SOP's constant color parameter ("color").
-    Returns True if applied.
-    """
     try:
         if not _is_color_sop(node):
             return False
@@ -30,7 +26,6 @@ def randomConstantColor(node: hou.Node) -> bool:
         rgb = (random.random(), random.random(), random.random())
         with hou.undos.group("Random Color"):
             parm.set(rgb)
-            # Fast visual feedback (event scripts also keep node color in sync)
             try:
                 node.setColor(hou.Color(rgb))
             except Exception:
@@ -42,9 +37,6 @@ def randomConstantColor(node: hou.Node) -> bool:
 
 
 def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
-    """
-    Ctrl+LMB on a Color SOP randomizes its constant color.
-    """
     try:
         if uievent.eventtype != "mousedown":
             return False
@@ -55,7 +47,7 @@ def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
         if uievent.modifierstate.shift or uievent.modifierstate.alt:
             return False
 
-        if (not allow_flag_click) and ctx["is_flag_click"](uievent):
+        if ctx["is_flag_click"](uievent):
             return False
 
         node = ctx["get_node_under_mouse"](uievent) or ctx["find_nearest_node"](uievent.editor)

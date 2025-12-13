@@ -107,12 +107,28 @@ def _hooks():
 
 
 def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
+    eff_ctx = ctx
+    try:
+        if isinstance(ctx, dict) and "is_flag_click" in ctx and callable(ctx["is_flag_click"]):
+            _orig_is_flag_click = ctx["is_flag_click"]
+
+            def _is_flag_click_wrapped(ev):
+                try:
+                    return (not allow_flag_click) and bool(_orig_is_flag_click(ev))
+                except Exception:
+                    return False
+
+            eff_ctx = dict(ctx)
+            eff_ctx["is_flag_click"] = _is_flag_click_wrapped
+    except Exception:
+        eff_ctx = ctx
+
     for m in _hooks():
         fn = getattr(m, "handle_ctrl_lmb", None)
         if fn is None:
             continue
         try:
-            if fn(uievent, ctx, allow_flag_click=allow_flag_click):
+            if fn(uievent, eff_ctx, allow_flag_click=allow_flag_click):
                 return True
         except Exception:
             if _debug_enabled():

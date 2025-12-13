@@ -51,10 +51,6 @@ def _negate_changed(node, event_type, **kwargs):
 
 
 def ensure(node):
-    """
-    Ensure Split nodes (including versioned split::x.y) have a parm callback installed
-    to keep node color in sync with the negate parm.
-    """
     try:
         if not node or not isinstance(node, hou.Node) or not _is_split(node):
             return
@@ -86,9 +82,7 @@ def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
         if uievent.modifierstate.shift or uievent.modifierstate.alt:
             return False
 
-        # Match convention used by other hooks: block flag clicks unless explicitly allowed
-        # (nodegraphhooks will retry with allow_flag_click=True).
-        if (not allow_flag_click) and ctx["is_flag_click"](uievent):
+        if ctx["is_flag_click"](uievent):
             return False
 
         node = ctx["get_node_under_mouse"](uievent)
@@ -98,7 +92,6 @@ def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
         if not _is_split(node):
             return False
 
-        # Make sure callback is installed even for versioned split::x.y
         ensure(node)
 
         p = node.parm("negate")
