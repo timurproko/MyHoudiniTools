@@ -486,6 +486,13 @@ fs_watcher.addPath(os.path.join(currentdir, "utility_hotkey_system.py"))
 fs_watcher.fileChanged.connect(__reload_pythonlibs)
 
 def _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
+    """
+    Block Ctrl+LMB clicks on node flag widgets (display/render/template/bypass/etc)
+    so the current node flags never change from accidental Ctrl-clicks.
+
+    We rely on Houdini's canvas pick metadata (`uievent.selected.name`) which
+    identifies the sub-element under the mouse (node body vs flag button).
+    """
     try:
         if uievent.eventtype != 'mousedown':
             return False
@@ -529,6 +536,9 @@ def createEventHandler(uievent, pending_actions):
         return None, False
 
     if _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
+        ctrl_node_set = _maybeSetCtrlNodeOnCtrlLMB(uievent)
+        if not ctrl_node_set:
+            _maybeCycleSwitchOnCtrlLMB(uievent)
         return None, True
 
     ctrl_node_set = _maybeSetCtrlNodeOnCtrlLMB(uievent)
