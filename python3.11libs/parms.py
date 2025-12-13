@@ -1,6 +1,6 @@
 from typing import Iterable, Optional, Tuple, Generator
 import hou, itertools, re
-from constants import CTRL_BASE_NAME, CTRL_COLOR_ACTIVE, CTRL_COLOR_INACTIVE, ENV_CTRL_NODE, ENV_MULTIPARM_NODE
+from constants import CTRL_BASE_NAME, CTRL_COLOR_ACTIVE, CTRL_COLOR_INACTIVE, ENV_CTRL_NODE, ENV_CTRL_NODE_ID, ENV_MULTIPARM_NODE
 
 
 class HoudiniError(Exception):
@@ -395,7 +395,9 @@ def ctrl_node_set(kwargs):
 
     def saveParmNodePath(node):
         node_path = node.path()
+        node_session_id = str(node.sessionId())
         hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
+        hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE_ID, node_session_id))
 
     autoRename(node, base_name)
     hideNullParms(node)
