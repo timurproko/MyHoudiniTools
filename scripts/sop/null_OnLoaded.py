@@ -112,8 +112,6 @@ try:
         _check_active_ctrl_exists(constants)
 
         active_path = hou.getenv(constants.ENV_CTRL_NODE) or ""
-        # Duplicates can inherit the active CTRL color from the source node.
-        # Path comparison alone isn't enough; use sessionId to reliably detect the active node.
         is_active = False
         if active_path:
             try:

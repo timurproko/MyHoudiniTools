@@ -79,7 +79,6 @@ def _check_active_ctrl_exists(constants):
                 pass
             return
 
-        # Cache the active CTRL node session id so we can reliably track it across renames.
         try:
             if hasattr(hou, "session"):
                 hou.session._CTRL_NODE_SID = active_node.sessionId()
@@ -94,9 +93,6 @@ def _update_active_ctrl_if_renamed(constants, node, old_name):
         active_path = hou.getenv(constants.ENV_CTRL_NODE) or ""
         if not active_path.strip():
             return
-        # Only update ENV_CTRL_NODE when THIS node is the active CTRL node.
-        # Do NOT use old_name path guessing here: duplication often uses the source name as "old_name"
-        # and can incorrectly hijack the active CTRL env var.
         try:
             active_sid = None
             if hasattr(hou, "session"):
@@ -133,21 +129,16 @@ def _apply_ctrl_rename_rules(node, constants, old_name):
 
     new_upper = new_name.upper()
 
-    partials = [ctrl_base[:i] for i in range(1, len(ctrl_base) + 1)]
-    if new_upper in partials:
+    if len(new_upper) >= 4 and new_upper[:4] == ctrl_base:
+        return True
+
+    if not new_name:
         target = ctrl_base
-
-    elif len(new_upper) >= 4 and new_upper[:4] == ctrl_base:
-        return True 
-
     else:
-        if not new_name:
-            target = ctrl_base
-        else:
-            target = f"{ctrl_base}_{new_name}"
+        target = f"{ctrl_base}_{new_name}"
 
-        if target != node.name():
-            node.setName(target, unique_name=True)
+    if target != node.name():
+        node.setName(target, unique_name=True)
 
     return True
 
