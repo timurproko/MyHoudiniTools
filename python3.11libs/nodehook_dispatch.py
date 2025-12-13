@@ -1,15 +1,13 @@
 import traceback
 import hou
+import os
+import re
 
 import hou_module_loader
 
 
-_HOOK_SPECS = (
-    ("_mytools_hook_split", "scripts/sop/nodehooks/split.py"),
-    ("_mytools_hook_switch", "scripts/sop/nodehooks/switch.py"),
-    ("_mytools_hook_null", "scripts/sop/nodehooks/null.py"),
-    ("_mytools_hook_color", "scripts/sop/nodehooks/color.py"),
-)
+_NODEHOOKS_DIR_REL = "scripts/sop/nodehooks"
+_NODEHOOKS_CACHE_KEY = "_MYTOOLS_NODEHOOK_MODULES"
 
 
 def _debug_enabled():
@@ -19,24 +17,90 @@ def _debug_enabled():
         return False
 
 
+def _sanitize_module_suffix(name: str) -> str:
+    try:
+        return re.sub(r"[^0-9a-zA-Z_]+", "_", name).strip("_").lower() or "hook"
+    except Exception:
+        return "hook"
+
+
+def _discover_hook_relpaths():
+    try:
+        houdini_path = hou.getenv("HOUDINI_PATH") or ""
+        search_roots = []
+        for part in houdini_path.split(os.pathsep):
+            part = (part or "").strip()
+            if not part or part == "&":
+                continue
+            try:
+                part = hou.expandString(part)
+            except Exception:
+                pass
+            search_roots.append(part)
+
+        base_dirs = []
+        for root in search_roots:
+            try:
+                candidate = os.path.join(root, _NODEHOOKS_DIR_REL)
+                if os.path.isdir(candidate):
+                    base_dirs.append(candidate)
+            except Exception:
+                continue
+
+        if not base_dirs:
+            if _debug_enabled():
+                print("[MYTOOLS][nodehook_dispatch] No nodehooks dir found under HOUDINI_PATH for %s" % _NODEHOOKS_DIR_REL)
+            return []
+
+        relpaths = []
+        seen = set()
+        for base_dir in base_dirs:
+            for fname in os.listdir(base_dir):
+                if not fname.endswith(".py"):
+                    continue
+                if fname.startswith("_"):
+                    continue
+                if fname == "__init__.py":
+                    continue
+                rel = f"{_NODEHOOKS_DIR_REL}/{fname}"
+                if rel in seen:
+                    continue
+                seen.add(rel)
+                relpaths.append(rel)
+
+        relpaths.sort()
+        return relpaths
+    except Exception:
+        return []
+
+
 def _load_hooks():
     hooks = []
-    for mod_name, rel_path in _HOOK_SPECS:
+    for rel_path in _discover_hook_relpaths():
         try:
+            base = os.path.basename(rel_path)
+            stem = os.path.splitext(base)[0]
+            mod_name = f"_mytools_hook_{_sanitize_module_suffix(stem)}"
             m = hou_module_loader.load_from_hou_path(rel_path, mod_name)
             hooks.append(m)
         except Exception:
             if _debug_enabled():
                 print("[MYTOOLS][nodehook_dispatch] Failed loading %s (%s)\n%s" % (rel_path, mod_name, traceback.format_exc()))
+
+    try:
+        hooks.sort(key=lambda m: (int(getattr(m, "PRIORITY", 100)), getattr(m, "__file__", "")))
+    except Exception:
+        pass
+
     return hooks
 
 
 def _hooks():
     try:
-        cache = getattr(hou.session, "_MYTOOLS_NODEHOOK_MODULES", None)
+        cache = getattr(hou.session, _NODEHOOKS_CACHE_KEY, None)
         if cache is None:
             cache = _load_hooks()
-            setattr(hou.session, "_MYTOOLS_NODEHOOK_MODULES", cache)
+            setattr(hou.session, _NODEHOOKS_CACHE_KEY, cache)
         return cache
     except Exception:
         return _load_hooks()
