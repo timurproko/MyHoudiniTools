@@ -30,7 +30,6 @@ def _import_constants():
 
 
 def _defer(fn):
-    """Run after Houdini finishes rename/duplicate UI updates."""
     try:
         if hasattr(hou, "ui") and hou.ui is not None:
             try:

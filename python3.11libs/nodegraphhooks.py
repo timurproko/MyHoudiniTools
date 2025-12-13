@@ -485,10 +485,51 @@ fs_watcher.addPath(os.path.join(currentdir, "nodegraphhooks.py"))
 fs_watcher.addPath(os.path.join(currentdir, "utility_hotkey_system.py"))
 fs_watcher.fileChanged.connect(__reload_pythonlibs)
 
+def _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
+    try:
+        if uievent.eventtype != 'mousedown':
+            return False
+        if not uievent.mousestate.lmb:
+            return False
+        if not uievent.modifierstate.ctrl:
+            return False
+
+        sel = getattr(uievent, "selected", None)
+        if not sel:
+            return False
+
+        sel_item = getattr(sel, "item", None)
+        if not isinstance(sel_item, hou.Node):
+            return False
+
+        sel_name = getattr(sel, "name", None)
+        if not isinstance(sel_name, str) or not sel_name:
+            return False
+
+        n = sel_name.lower()
+
+        flag_tokens = (
+            "flag",
+            "display",
+            "render",
+            "template",
+            "bypass",
+            "xray",
+            "select",
+            "freeze",
+            "lock",
+        )
+        return any(t in n for t in flag_tokens)
+    except Exception:
+        return False
+
 
 def createEventHandler(uievent, pending_actions):
     if not isinstance(uievent.editor, hou.NetworkEditor):
         return None, False
+
+    if _shouldBlockNodeFlagClickOnCtrlLMB(uievent):
+        return None, True
 
     ctrl_node_set = _maybeSetCtrlNodeOnCtrlLMB(uievent)
     if not ctrl_node_set:
