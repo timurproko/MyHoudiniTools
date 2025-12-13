@@ -56,10 +56,6 @@ def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
 
 
 def ensure_on_mousedown(uievent, ctx):
-    """
-    Give hooks a chance to attach node-level callbacks when the user clicks a node.
-    This is used to support cases where SOP event scripts don't fire (e.g. versioned op types).
-    """
     try:
         if uievent.eventtype != "mousedown":
             return

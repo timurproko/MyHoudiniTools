@@ -1,32 +1,16 @@
 import hou
 import traceback
-import sys
-import os
+import hou_module_loader
 
 
-def _import_constants():
+def _load_constants():
     try:
-        import constants
-        return constants
-    except ImportError:
-        pass
-
-    houdini_pref_dir = hou.getenv("HOUDINI_USER_PREF_DIR")
-    if houdini_pref_dir:
-        packages_dir = os.path.join(houdini_pref_dir, "packages")
-        if os.path.exists(packages_dir):
-            for item in os.listdir(packages_dir):
-                item_path = os.path.join(packages_dir, item)
-                if os.path.isdir(item_path):
-                    libs_dir = os.path.join(item_path, "python3.11libs")
-                    if os.path.exists(libs_dir) and libs_dir not in sys.path:
-                        sys.path.insert(0, libs_dir)
-                        try:
-                            import constants
-                            return constants
-                        except ImportError:
-                            pass
-    return None
+        return hou_module_loader.load_from_hou_path(
+            "scripts/sop/constants/null.py",
+            "_mytools_sop_constants",
+        )
+    except Exception:
+        return None
 
 
 def _defer(fn):
@@ -90,7 +74,7 @@ def _set_node_color(node, color):
 
 
 try:
-    constants = _import_constants()
+    constants = _load_constants()
     if constants is None:
         raise SystemExit
 

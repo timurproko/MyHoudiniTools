@@ -1,6 +1,17 @@
 from typing import Iterable, Optional, Tuple, Generator
 import hou, itertools, re
-from constants import CTRL_BASE_NAME, CTRL_COLOR_ACTIVE, CTRL_COLOR_INACTIVE, ENV_CTRL_NODE, ENV_MULTIPARM_NODE
+import hou_module_loader
+
+_consts = hou_module_loader.load_from_hou_path(
+    "scripts/sop/constants/null.py",
+    "_mytools_sop_constants",
+)
+
+CTRL_BASE_NAME = _consts.CTRL_BASE_NAME
+CTRL_COLOR_ACTIVE = _consts.CTRL_COLOR_ACTIVE
+CTRL_COLOR_INACTIVE = _consts.CTRL_COLOR_INACTIVE
+ENV_CTRL_NODE = _consts.ENV_CTRL_NODE
+ENV_MULTIPARM_NODE = _consts.ENV_MULTIPARM_NODE
 
 
 class HoudiniError(Exception):

@@ -3,19 +3,14 @@ import hou
 import hou_module_loader
 
 _env = hou_module_loader.load_from_hou_path(
-    "python3.11libs/constants.py",
-    "_mytools_constants",
-)
-
-_null_consts = hou_module_loader.load_from_hou_path(
     "scripts/sop/constants/null.py",
-    "_mytools_null_constants",
+    "_mytools_sop_constants",
 )
 
 ENV_CTRL_NODE = _env.ENV_CTRL_NODE
-CTRL_BASE_NAME = _null_consts.CTRL_BASE_NAME
-CTRL_COLOR_ACTIVE = _null_consts.CTRL_COLOR_ACTIVE
-CTRL_COLOR_INACTIVE = _null_consts.CTRL_COLOR_INACTIVE
+CTRL_BASE_NAME = _env.CTRL_BASE_NAME
+CTRL_COLOR_ACTIVE = _env.CTRL_COLOR_ACTIVE
+CTRL_COLOR_INACTIVE = _env.CTRL_COLOR_INACTIVE
 
 
 def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
