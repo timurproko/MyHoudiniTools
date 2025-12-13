@@ -102,6 +102,66 @@ def _set_node_color(node, color):
         pass
 
 
+def _is_ctrl_node(node, constants):
+    try:
+        active_path = hou.getenv(constants.ENV_CTRL_NODE) or ""
+        if active_path:
+            active_node = hou.node(active_path)
+            if active_node is not None and active_node.sessionId() == node.sessionId():
+                return True
+            try:
+                stored_parent_path = "/".join(active_path.split("/")[:-1])
+                node_parent_path = node.parent().path()
+                if stored_parent_path == node_parent_path:
+                    stored_name = active_path.split("/")[-1]
+                    if stored_name.upper().startswith(constants.CTRL_BASE_NAME.upper()):
+                        return True
+            except:
+                pass
+        
+        node_color = node.color()
+        inactive_color = constants.CTRL_COLOR_INACTIVE
+        active_color = constants.CTRL_COLOR_ACTIVE
+        
+        def colors_match(c1, c2, tolerance=0.01):
+            return (abs(c1.rgb()[0] - c2.rgb()[0]) < tolerance and
+                    abs(c1.rgb()[1] - c2.rgb()[1]) < tolerance and
+                    abs(c1.rgb()[2] - c2.rgb()[2]) < tolerance)
+        
+        if colors_match(node_color, inactive_color) or colors_match(node_color, active_color):
+            return True
+            
+        return False
+    except:
+        return False
+
+
+def _validate_ctrl_name(node, constants):
+    try:
+        current_name = node.name()
+        ctrl_base = constants.CTRL_BASE_NAME.upper()
+        
+        if not current_name or not current_name.strip():
+            node.setName(ctrl_base)
+            return
+        
+        current_upper = current_name.upper()
+        
+        partial_matches = [ctrl_base[:i] for i in range(1, len(ctrl_base) + 1)]
+        if current_upper in partial_matches:
+            if current_name != ctrl_base:
+                node.setName(ctrl_base)
+            return
+        
+        if current_upper.startswith(ctrl_base):
+            return
+        
+        new_name = f"{ctrl_base}_{current_name}"
+        node.setName(new_name)
+    except:
+        pass
+
+
 try:
     constants = _import_constants()
     if constants is None:
@@ -114,7 +174,23 @@ try:
     if me.type().name() != "null":
         raise SystemExit
 
-    if not me.name().upper().startswith(constants.CTRL_BASE_NAME.upper()):
+    current_name = me.name()
+    ctrl_base = constants.CTRL_BASE_NAME.upper()
+    current_name_upper = current_name.upper()
+    
+    if "ORIGINAL" in current_name_upper and "_OF_" in current_name_upper:
+        raise SystemExit
+    
+    name_starts_with_ctrl = current_name_upper.startswith(ctrl_base)
+    is_confirmed_ctrl_node = _is_ctrl_node(me, constants)
+    
+    if not name_starts_with_ctrl and not is_confirmed_ctrl_node:
+        raise SystemExit
+
+    _validate_ctrl_name(me, constants)
+
+    final_name_upper = me.name().upper()
+    if not final_name_upper.startswith(ctrl_base):
         raise SystemExit
 
     inactive_color = constants.CTRL_COLOR_INACTIVE
