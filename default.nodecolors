@@ -213,13 +213,15 @@
 	["Lop/editlayer_begin", [0.665, 0.825, 0.9]],
 	["Lop/editlayer_end", [0.665, 0.825, 0.9]],
 
+	["Object/null", [1.0, 0.7250000238418579, 0.0]],
+
 	["Sop/null", [1.0, 0.7250000238418579, 0.0]],
 	["Sop/vex_switch", [0.800000011920929, 1.0, 0.6980000138282776]],
 	["Sop/vex_wrangle", [0.8, 0.8, 0.8]],
 
-	["Sop/visualize", [0.624, 0.329, 0.396]],
-	["Sop/visualize_uv", [0.624, 0.329, 0.396]],
-	["Sop/visualize_pscale", [0.624, 0.329, 0.396]],
+	["Sop/visualize", [0.565, 0.494, 0.863]],
+	["Sop/visualize_uv", [0.565, 0.494, 0.863]],
+	["Sop/visualize_pscale", [0.565, 0.494, 0.863]],
 
 	["Sop/unity_configure_project", [0.8, 0.8, 0.8]],
 	["Sop/unity_output_captured", [0.6470000147819519, 0.4000000059604645, 0.49799999594688416]],

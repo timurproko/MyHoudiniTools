@@ -223,6 +223,8 @@
 	["kinefx::Sop/usdcharacterimport", "tabbed_left"],
 	["kinefx::Sop/usdskinimport", "tabbed_left"],
 
+	["Object/null", "circle"],
+
 	["Sop/null", "circle"],
 	["Sop/vex_switch", "diamond"],
 	["Sop/vex_wrangle", "wave"],

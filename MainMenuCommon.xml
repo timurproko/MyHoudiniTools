@@ -38,7 +38,7 @@ mytools.toggle_stowbars()
 
         <subMenu id="my_tools_menu">
                 <insertBefore>windows_menu</insertBefore>
-                <label>My Tools</label>
+                <label>MyTools</label>
 
         <subMenu id="mytools_ui_tools">
         <label>UI</label>
