@@ -221,6 +221,21 @@
 	["kinefx::Sop/scenecharacterexport", "clipped_left"],
 	["kinefx::Sop/usdanimimport", "tabbed_left"],
 	["kinefx::Sop/usdcharacterimport", "tabbed_left"],
-	["kinefx::Sop/usdskinimport", "tabbed_left"]
+	["kinefx::Sop/usdskinimport", "tabbed_left"],
+
+	["Sop/null", "circle"],
+	["Sop/vex_switch", "diamond"],
+	["Sop/vex_wrangle", "wave"],
+
+	["Sop/visualize", "oval"],
+	["Sop/visualize_uv", "oval"],
+	["Sop/visualize_pscale", "oval"],
+
+	["Sop/unity_configure_project", "box_rounded"],
+	["Sop/unity_output_captured", "clipped_right"],
+	["Sop/unity_output_geometry", "clipped_right"],
+	["Sop/unity_output_hda", "clipped_right"],
+	["Sop/unity_output_instances", "clipped_right"],
+	["Sop/unity_output_maps", "clipped_right"]
     ]
 }
