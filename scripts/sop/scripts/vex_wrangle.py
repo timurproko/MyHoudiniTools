@@ -1,41 +1,65 @@
-import hou, re, time
+import hou
+import re
+import time
 
+
+_SHOW_PARMS_COLOR = (0.9959999918937683, 0.9330000281333923, 0.0)
+_SHOW_PARMS_PREV_COLOR_USERDATA_KEY = "mytools_showparms_prev_color"
+
+
+def _encode_rgb(rgb):
+    return ",".join(str(float(x)) for x in rgb[:3])
+
+
+def _decode_rgb(s):
+    parts = [p.strip() for p in (s or "").split(",")]
+    if len(parts) < 3:
+        raise ValueError("Invalid rgb string")
+    return (float(parts[0]), float(parts[1]), float(parts[2]))
+
+
+def toggle_node_color_from_current(
+    node,
+    highlight_color=_SHOW_PARMS_COLOR,
+    userdata_key=_SHOW_PARMS_PREV_COLOR_USERDATA_KEY,
+):
+    if node is None:
+        return
+
+    prev = node.userData(userdata_key)
+    if prev:
+        try:
+            node.setColor(hou.Color(_decode_rgb(prev)))
+        finally:
+            try:
+                node.destroyUserData(userdata_key)
+            except Exception:
+                node.setUserData(userdata_key, "")
+        return
+
+    node.setUserData(userdata_key, _encode_rgb(node.color().rgb()))
+    node.setColor(hou.Color(highlight_color))
 
 
 def show_parms(node):
-    current_value = node.parm('parm_mode').eval()
+    current_value = node.parm("parm_mode").eval()
     new_value = not current_value
-    node.parm('parm_mode').set(new_value)
-
+    node.parm("parm_mode").set(new_value)
+    toggle_node_color_from_current(node)
 
 
 def edit_code(node):
-    parm = node.parm('snippet')
-    vscEmbed(parm, 'Visual Studio Code')
-
-
-
-def toggle_node_color(node, selected_color, alternate_color):
-    current_color = node.color().rgb()
-    default_color = (0.800000011920929, 0.800000011920929, 0.800000011920929)
-    if current_color == default_color:
-        node.setColor(hou.Color(selected_color))
-    elif current_color == selected_color:
-        node.setColor(hou.Color(alternate_color))
-    else:
-        node.setColor(hou.Color(default_color))
-
+    parm = node.parm("snippet")
+    vscEmbed(parm, "Visual Studio Code")
 
 
 def create_parms(node):
-    parmname = 'snippet'
+    parmname = "snippet"
     createSpareParmsFromChCalls(node, parmname)
-
 
 
 def delete_parms(node):
     node.removeSpareParms()
-
 
 
 def vscEmbed(parm, ide):
@@ -45,10 +69,10 @@ def vscEmbed(parm, ide):
         reload(ParmWatcher)
     except NameError:
         from importlib import reload
+
         reload(ParmWatcher)
     ParmWatcher.add_watcher(parm)
 
-    ## Create a new tab
     desktop = hou.ui.curDesktop()
     existing_vsc_tab = None
     for pane in desktop.paneTabs():
@@ -56,7 +80,6 @@ def vscEmbed(parm, ide):
             existing_vsc_tab = pane
             break
 
-    # If the tab exists, activate it. Otherwise, create a new one.
     if existing_vsc_tab:
         existing_vsc_tab.setIsCurrentTab()
     else:
@@ -68,8 +91,7 @@ def vscEmbed(parm, ide):
         tab.setName(ide)
         tab.showToolbar(False)
         time.sleep(0.25)
-        tab.setActiveInterface(hou.pypanel.interfaces()['vscEmbed'])
-
+        tab.setActiveInterface(hou.pypanel.interfaces()["vscEmbed"])
 
 
 # ===================== HOUDINI SOURCE CODE  =====================
@@ -79,16 +101,16 @@ def vscEmbed(parm, ide):
 def _remove_comments(text):
     def replacer(match):
         s = match.group(0)
-        if s.startswith('/'):
-            return ' '
+        if s.startswith("/"):
+            return " "
         else:
             return s
-    pattern = re.compile(
-        r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
-        re.DOTALL | re.MULTILINE
-        )
-    return re.sub(pattern, replacer, text)
 
+    pattern = re.compile(
+        r"//.*?$|/\*.*?\*/|\'(?:\\\\.|[^\\\\\'])*\'|\"(?:\\\\.|[^\\\\\"])*\"",
+        re.DOTALL | re.MULTILINE,
+    )
+    return re.sub(pattern, replacer, text)
 
 
 def createSpareParmsFromChCalls(node, parmname):
@@ -111,7 +133,7 @@ def createSpareParmsFromChCalls(node, parmname):
         stripcode = code.strip()
         if len(stripcode) >= 2:
             # is this entirely a backtick expression?
-            if stripcode[0] == '`' and stripcode[-1] == '`':
+            if stripcode[0] == "`" and stripcode[-1] == "`":
                 issimple = False
                 code = parm.evalAsString()
 
@@ -121,36 +143,49 @@ def createSpareParmsFromChCalls(node, parmname):
 
     # Now find all ch() patterns.
     chcalls = [
-        'ch', 'chf', 'chi', 'chu', 'chv', 'chp', 'ch2', 'ch3', 'ch4',
-        r'vector\(chramp', 'chramp', r'vector\(chrampderiv', 'chrampderiv', 'chs',
-        'chdict', 'chsop'
+        "ch",
+        "chf",
+        "chi",
+        "chu",
+        "chv",
+        "chp",
+        "ch2",
+        "ch3",
+        "ch4",
+        r"vector\(chramp",
+        "chramp",
+        r"vector\(chrampderiv",
+        "chrampderiv",
+        "chs",
+        "chdict",
+        "chsop",
     ]
 
     ch_to_size = {
-        'ch':1,
-        'chf':1,
-        'chi':1,
-        'chu':2,
-        'chv':3,
-        'chp':4,
-        'ch2':4,
-        'ch3':9,
-        'ch4':16,
-        r'vector\(chramp':1,
-        'chramp':1,
-        r'vector\(chrampderiv':1,
-        'chrampderiv':1,
-        'chs':1,
-        'chsop':1,
-        'chdict':1
-        }
+        "ch": 1,
+        "chf": 1,
+        "chi": 1,
+        "chu": 2,
+        "chv": 3,
+        "chp": 4,
+        "ch2": 4,
+        "ch3": 9,
+        "ch4": 16,
+        r"vector\(chramp": 1,
+        "chramp": 1,
+        r"vector\(chrampderiv": 1,
+        "chrampderiv": 1,
+        "chs": 1,
+        "chsop": 1,
+        "chdict": 1,
+    }
 
     chmatches = []
     for chcall in chcalls:
         # We wish to match ch("foo"); ch("foo", 3.2); ch('foo')
         # We do not want to match ch("../foo"); ch("foo" + "bar");
-        matches = re.findall( r'\b' + chcall + r' *\( *"(\w+)" *[\),]', code )
-        matches += re.findall( r'\b' + chcall + r" *\( *'(\w+)' *[\),]", code )
+        matches = re.findall(r"\b" + chcall + r" *\( *\"(\w+)\" *[\),]", code)
+        matches += re.findall(r"\b" + chcall + r" *\( *'(\w+)' *[\),]", code)
         chmatches.append(matches)
 
         # Check if we have this parameter already.
@@ -159,23 +194,33 @@ def createSpareParmsFromChCalls(node, parmname):
                 # No match, add the parameter.
                 template = None
                 tuplesize = ch_to_size[chcall]
-                label = match.title().replace('_', ' ')
-                if chcall == r'vector\(chramp' or chcall == r'vector\(chrampderiv':
+                label = match.title().replace("_", " ")
+                if chcall == r"vector\(chramp" or chcall == r"vector\(chrampderiv":
                     template = hou.RampParmTemplate(match, label, hou.rampParmType.Color)
-                elif chcall == 'chramp' or chcall == 'chrampderiv':
+                elif chcall == "chramp" or chcall == "chrampderiv":
                     # No explicit cast, guess float.
                     template = hou.RampParmTemplate(match, label, hou.rampParmType.Float)
-                elif chcall == 'chs':
+                elif chcall == "chs":
                     template = hou.StringParmTemplate(match, label, tuplesize)
-                elif chcall == 'chsop':
-                    template = hou.StringParmTemplate(match, label, tuplesize, string_type = hou.stringParmType.NodeReference)
-                elif chcall == 'chi':
+                elif chcall == "chsop":
+                    template = hou.StringParmTemplate(
+                        match,
+                        label,
+                        tuplesize,
+                        string_type=hou.stringParmType.NodeReference,
+                    )
+                elif chcall == "chi":
                     template = hou.IntParmTemplate(match, label, tuplesize)
-                elif chcall == 'chdict':
-                    template = hou.DataParmTemplate(match, label, tuplesize, data_parm_type = hou.dataParmType.KeyValueDictionary)
+                elif chcall == "chdict":
+                    template = hou.DataParmTemplate(
+                        match,
+                        label,
+                        tuplesize,
+                        data_parm_type=hou.dataParmType.KeyValueDictionary,
+                    )
                 else:
                     # Range is less meaningfull for tuples, so set it nicely for scalars.
-                    template = hou.FloatParmTemplate(match, label, tuplesize, min = 0, max = 1)
+                    template = hou.FloatParmTemplate(match, label, tuplesize, min=0, max=1)
                 node.addSpareParmTuple(template)
 
     # If we are not simple we can't write back as it will chase the
@@ -184,4 +229,6 @@ def createSpareParmsFromChCalls(node, parmname):
     if issimple:
         code = node.parm(parmname).unexpandedString()
         node.parm(parmname).set(code)
+
+
 # ===================== HOUDINI SOURCE CODE  =====================
