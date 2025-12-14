@@ -857,11 +857,29 @@ def open_keymap_manager():
 
 
 def get_scene_viewer_under_cursor():
-    """Helper function to get the Scene Viewer under the cursor."""
     pane = hou.ui.paneTabUnderCursor()
     if pane and pane.type() == hou.paneTabType.SceneViewer:
         return pane
     return None
+
+
+
+_BOUNDING_BOX_SHADING_PAIR = (hou.glShadingType.WireBoundingBox, hou.glShadingType.ShadedBoundingBox)
+
+
+
+_SHADING_MODE_PAIRS = [
+    (hou.glShadingType.WireGhost, hou.glShadingType.Wire),
+    (hou.glShadingType.HiddenLineInvisible, hou.glShadingType.HiddenLineGhost),
+    (hou.glShadingType.Flat, hou.glShadingType.FlatWire),
+    (hou.glShadingType.Smooth, hou.glShadingType.SmoothWire),
+    (hou.glShadingType.MatCap, hou.glShadingType.MatCapWire),
+]
+
+
+
+def _shading_mode_sets_from_pairs(pairs):
+    return [a for (a, _b) in pairs], [b for (_a, b) in pairs]
 
 
 
@@ -879,23 +897,7 @@ def toggle_shading_mode():
         settings.displaySet(hou.displaySetType.SceneObject)
     ]
 
-    modes_set_1 = [
-        hou.glShadingType.WireBoundingBox,
-        hou.glShadingType.WireGhost,
-        hou.glShadingType.HiddenLineGhost,
-        hou.glShadingType.Flat,
-        hou.glShadingType.Smooth,
-        hou.glShadingType.MatCap
-    ]
-
-    modes_set_2 = [
-        hou.glShadingType.ShadedBoundingBox,
-        hou.glShadingType.Wire,
-        hou.glShadingType.HiddenLineInvisible,
-        hou.glShadingType.FlatWire,
-        hou.glShadingType.SmoothWire,
-        hou.glShadingType.MatCapWire
-    ]
+    modes_set_1, modes_set_2 = _shading_mode_sets_from_pairs(_SHADING_MODE_PAIRS)
 
     for display_set in display_sets:
         current_mode = display_set.shadedMode()
@@ -904,11 +906,18 @@ def toggle_shading_mode():
             mode_set = modes_set_1
         elif current_mode in modes_set_2:
             mode_set = modes_set_2
+        elif current_mode == _BOUNDING_BOX_SHADING_PAIR[1]:
+            mode_set = modes_set_2
+        elif current_mode == _BOUNDING_BOX_SHADING_PAIR[0]:
+            mode_set = modes_set_1
         else:
             mode_set = modes_set_1
 
-        next_mode_index = (mode_set.index(current_mode) + 1) % len(mode_set)
-        next_mode = mode_set[next_mode_index]
+        try:
+            next_mode_index = (mode_set.index(current_mode) + 1) % len(mode_set)
+            next_mode = mode_set[next_mode_index]
+        except ValueError:
+            next_mode = mode_set[0]
 
         display_set.setShadedMode(next_mode)
 
@@ -928,14 +937,7 @@ def toggle_shading_mode_pair():
         settings.displaySet(hou.displaySetType.SceneObject) 
     ]
 
-    shading_pairs = [
-        (hou.glShadingType.WireBoundingBox, hou.glShadingType.ShadedBoundingBox),
-        (hou.glShadingType.WireGhost, hou.glShadingType.Wire),
-        (hou.glShadingType.HiddenLineGhost, hou.glShadingType.HiddenLineInvisible),
-        (hou.glShadingType.Flat, hou.glShadingType.FlatWire),
-        (hou.glShadingType.Smooth, hou.glShadingType.SmoothWire),
-        (hou.glShadingType.MatCap, hou.glShadingType.MatCapWire)
-    ]
+    shading_pairs = [_BOUNDING_BOX_SHADING_PAIR, *_SHADING_MODE_PAIRS]
 
     for display_set in display_sets:
         current_mode = display_set.shadedMode()
