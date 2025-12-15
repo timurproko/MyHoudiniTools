@@ -49,14 +49,6 @@ def edit_code(node):
     vscEmbed(parm, "Visual Studio Code")
 
 
-def createSpareParmsFromChCalls(node, parmname):
-    createSpareParmsFromChCalls(node, parmname)
-
-
-def delete_parms(node):
-    node.removeSpareParms()
-
-
 def vscEmbed(parm, ide):
     from HoudiniExprEditor import ParmWatcher
 
