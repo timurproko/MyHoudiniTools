@@ -49,8 +49,7 @@ def edit_code(node):
     vscEmbed(parm, "Visual Studio Code")
 
 
-def create_parms(node):
-    parmname = "snippet"
+def createSpareParmsFromChCalls(node, parmname):
     createSpareParmsFromChCalls(node, parmname)
 
 
