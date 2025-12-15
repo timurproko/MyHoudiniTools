@@ -44,7 +44,14 @@ def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
 
         node_path = node.path()
         with hou.undos.group("Set CTRL Node"):
-            hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
+            try:
+                hou.putenv(ENV_CTRL_NODE, node_path)
+            except Exception:
+                pass
+            try:
+                hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
+            except Exception:
+                pass
             try:
                 if hasattr(hou, "session"):
                     hou.session._CTRL_NODE_SID = node.sessionId()

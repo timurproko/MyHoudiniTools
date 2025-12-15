@@ -811,7 +811,7 @@ def toggle_axiom_sim(value = None):
 def ctrl_select():
     global _last_selected_node_path
     
-    ctrl_path = hou.getenv('ctrl_node')
+    ctrl_path = hou.getenv('CTRL_NODE')
     if not ctrl_path:
         return
 

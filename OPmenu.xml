@@ -73,7 +73,7 @@ parms.ctrl_node_set(kwargs)
 <expression>
 <![CDATA[
 node = kwargs["node"]
-ctrl_node_path = hou.getenv("ctrl_node")
+ctrl_node_path = hou.getenv("CTRL_NODE")
 if ctrl_node_path and node.path() == ctrl_node_path:
     return True
 else:
@@ -93,7 +93,7 @@ parms.ctrl_open_tab(kwargs)
 <expression>
 <![CDATA[
 node = kwargs["node"]
-ctrl_node_path = hou.getenv("ctrl_node")
+ctrl_node_path = hou.getenv("CTRL_NODE")
 if ctrl_node_path and node.path() == ctrl_node_path:
     return True
 else:

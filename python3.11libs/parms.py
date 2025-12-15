@@ -352,9 +352,9 @@ def updateCtrlNodeColors():
         for node in hou.node("/").allSubChildren():
             if node.name().startswith(CTRL_BASE_NAME):
                 if active_ctrl_path and node.path() == active_ctrl_path:
-                    node.setColor(CTRL_COLOR_ACTIVE)
+                    node.setColor(hou.Color(CTRL_COLOR_ACTIVE))
                 else:
-                    node.setColor(CTRL_COLOR_INACTIVE)
+                    node.setColor(hou.Color(CTRL_COLOR_INACTIVE))
     except Exception:
         pass
 
@@ -396,7 +396,14 @@ def ctrl_node_set(kwargs):
 
     def saveParmNodePath(node):
         node_path = node.path()
-        hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
+        try:
+            hou.putenv(ENV_CTRL_NODE, node_path)
+        except Exception:
+            pass
+        try:
+            hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
+        except Exception:
+            pass
         try:
             if hasattr(hou, "session"):
                 hou.session._CTRL_NODE_SID = node.sessionId()
