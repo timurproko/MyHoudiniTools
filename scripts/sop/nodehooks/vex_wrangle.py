@@ -13,6 +13,16 @@ def _is_vex_wrangle(node: hou.Node) -> bool:
         return False
 
 
+def _has_spare_parms(node: hou.Node) -> bool:
+    try:
+        if not node or not isinstance(node, hou.Node):
+            return False
+        sp = node.spareParms()
+        return bool(sp) and len(sp) > 0
+    except Exception:
+        return False
+
+
 def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
     try:
         if uievent.eventtype != "mousedown":
@@ -32,6 +42,9 @@ def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
             return False
 
         if not _is_vex_wrangle(node):
+            return False
+
+        if not _has_spare_parms(node):
             return False
 
         import hou_module_loader
