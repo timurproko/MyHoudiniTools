@@ -98,7 +98,7 @@ except Exception:
 from PySide6 import QtCore, QtWidgets, QtGui
 import nodegraphbase as base
 import nodegraphstates as states
-import nodehook_dispatch
+from nodes import nodehook_dispatch
 
 
 class PendingAction(object):

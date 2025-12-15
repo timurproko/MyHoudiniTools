@@ -115,11 +115,7 @@ except:
 </context>
 <scriptCode>
 <![CDATA[
-import hou_module_loader
-vex_wrangle = hou_module_loader.load_from_hou_path(
-    "scripts/sop/scripts/vex_wrangle.py",
-    "_mytools_sop_vex_wrangle",
-)
+from nodes.scripts import vex_wrangle
 vex_wrangle.vscEmbed(kwargs["parms"][0], 'Visual Studio Code')
 ]]>
 </scriptCode>

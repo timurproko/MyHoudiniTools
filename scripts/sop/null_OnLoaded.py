@@ -1,9 +1,4 @@
-import hou_module_loader
-
-_null = hou_module_loader.load_from_hou_path(
-    "scripts/sop/scripts/null.py",
-    "_mytools_sop_null_script",
-)
+from nodes.scripts import null as _null
 
 try:
     _null.on_loaded(kwargs)

@@ -1,17 +1,6 @@
 from typing import Iterable, Optional, Tuple, Generator
 import hou, itertools, re
-import hou_module_loader
-
-_consts = hou_module_loader.load_from_hou_path(
-    "scripts/sop/constants/null.py",
-    "_mytools_sop_constants",
-)
-
-CTRL_BASE_NAME = _consts.CTRL_BASE_NAME
-CTRL_COLOR_ACTIVE = _consts.CTRL_COLOR_ACTIVE
-CTRL_COLOR_INACTIVE = _consts.CTRL_COLOR_INACTIVE
-ENV_CTRL_NODE = _consts.ENV_CTRL_NODE
-ENV_MULTIPARM_NODE = _consts.ENV_MULTIPARM_NODE
+from nodes.constants import null as _consts
 
 
 class HoudiniError(Exception):
@@ -38,13 +27,13 @@ class parmUtils():
 
     @property
     def envNode_parm(self) -> Optional[str]:
-        env = hou.getenv(ENV_CTRL_NODE)
+        env = hou.getenv(_consts.ENV_CTRL_NODE)
         if env:
             return hou.node(env)
 
     @property
     def envNode_multi_counter(self) -> Optional[str]:
-        env = hou.getenv(ENV_MULTIPARM_NODE)
+        env = hou.getenv(_consts.ENV_MULTIPARM_NODE)
         if env:
             return hou.node(env)
 
@@ -347,14 +336,14 @@ class parmUtils():
 
 def updateCtrlNodeColors():
     try:
-        active_ctrl_path = hou.getenv(ENV_CTRL_NODE) or ""
+        active_ctrl_path = hou.getenv(_consts.ENV_CTRL_NODE) or ""
         
         for node in hou.node("/").allSubChildren():
-            if node.name().startswith(CTRL_BASE_NAME):
+            if node.name().startswith(_consts.CTRL_BASE_NAME):
                 if active_ctrl_path and node.path() == active_ctrl_path:
-                    node.setColor(hou.Color(CTRL_COLOR_ACTIVE))
+                    node.setColor(hou.Color(_consts.CTRL_COLOR_ACTIVE))
                 else:
-                    node.setColor(hou.Color(CTRL_COLOR_INACTIVE))
+                    node.setColor(hou.Color(_consts.CTRL_COLOR_INACTIVE))
     except Exception:
         pass
 
@@ -376,7 +365,7 @@ def hideNullParms(node):
 def ctrl_node_set(kwargs):
     node_path = kwargs['node'].path()
     node = hou.node(node_path)
-    base_name = CTRL_BASE_NAME
+    base_name = _consts.CTRL_BASE_NAME
     node_index = 1
 
     def autoRename(node, base_name):
@@ -397,11 +386,11 @@ def ctrl_node_set(kwargs):
     def saveParmNodePath(node):
         node_path = node.path()
         try:
-            hou.putenv(ENV_CTRL_NODE, node_path)
+            hou.putenv(_consts.ENV_CTRL_NODE, node_path)
         except Exception:
             pass
         try:
-            hou.hscript("set -g {} = {}".format(ENV_CTRL_NODE, node_path))
+            hou.hscript("set -g {} = {}".format(_consts.ENV_CTRL_NODE, node_path))
         except Exception:
             pass
         try:
