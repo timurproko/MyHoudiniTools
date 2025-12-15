@@ -27,10 +27,6 @@ def randomConstantColor(node: hou.Node) -> bool:
         rgb = (random.random(), random.random(), random.random())
         with hou.undos.group("Random Color"):
             parm.set(rgb)
-            try:
-                node.setColor(hou.Color(rgb))
-            except Exception:
-                pass
 
         return True
     except Exception:
