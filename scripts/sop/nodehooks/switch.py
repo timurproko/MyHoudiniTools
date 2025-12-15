@@ -1,4 +1,10 @@
 import hou
+import hou_module_loader
+
+_utils = hou_module_loader.load_from_hou_path(
+    "scripts/sop/nodehooks/_utils.py",
+    "_mytools_nodehooks_utils",
+)
 
 
 def _cycle_switch_node_input(node):
@@ -68,25 +74,6 @@ def _cycle_switch_node_input(node):
 
 
 def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
-    try:
-        if uievent.eventtype != "mousedown":
-            return False
-        if not uievent.mousestate.lmb:
-            return False
-        if not uievent.modifierstate.ctrl:
-            return False
-        if uievent.modifierstate.shift or uievent.modifierstate.alt:
-            return False
-
-        if ctx["is_flag_click"](uievent):
-            return False
-
-        node = ctx["get_node_under_mouse"](uievent) or ctx["find_nearest_node"](uievent.editor)
-        if not node or ctx["is_non_node"](node):
-            return False
-
-        return _cycle_switch_node_input(node)
-    except Exception:
-        return False
+    return _utils.handle_ctrl_lmb_base(uievent, ctx, allow_flag_click, _cycle_switch_node_input)
 
 

@@ -1,4 +1,10 @@
 import hou
+import hou_module_loader
+
+_utils = hou_module_loader.load_from_hou_path(
+    "scripts/sop/nodehooks/_utils.py",
+    "_mytools_nodehooks_utils",
+)
 
 
 def _is_vex_wrangle(node: hou.Node) -> bool:
@@ -23,37 +29,19 @@ def _has_spare_parms(node: hou.Node) -> bool:
         return False
 
 
-def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
-    try:
-        if uievent.eventtype != "mousedown":
-            return False
-        if not uievent.mousestate.lmb:
-            return False
-        if not uievent.modifierstate.ctrl:
-            return False
-        if uievent.modifierstate.shift or uievent.modifierstate.alt:
-            return False
-
-        if ctx["is_flag_click"](uievent):
-            return False
-
-        node = ctx["get_node_under_mouse"](uievent) or ctx["find_nearest_node"](uievent.editor)
-        if not node or ctx["is_non_node"](node):
-            return False
-
-        if not _is_vex_wrangle(node):
-            return False
-
-        if not _has_spare_parms(node):
-            return False
-
-        import hou_module_loader
-
-        vex_wrangle = hou_module_loader.load_from_hou_path(
-            "scripts/sop/scripts/vex_wrangle.py",
-            "_mytools_sop_vex_wrangle",
-        )
-        vex_wrangle.show_parms(node)
-        return True
-    except Exception:
+def _vex_wrangle_action(node):
+    if not _is_vex_wrangle(node):
         return False
+    if not _has_spare_parms(node):
+        return False
+
+    vex_wrangle = hou_module_loader.load_from_hou_path(
+        "scripts/sop/scripts/vex_wrangle.py",
+        "_mytools_sop_vex_wrangle",
+    )
+    vex_wrangle.show_parms(node)
+    return True
+
+
+def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):
+    return _utils.handle_ctrl_lmb_base(uievent, ctx, allow_flag_click, _vex_wrangle_action)

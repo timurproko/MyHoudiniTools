@@ -234,10 +234,10 @@
 		["Sop/visualize_uv", "oval"],
 		["Sop/visualize_pscale", "oval"],
 		["Sop/unity_configure_project", "box_rounded"],
-		["Sop/unity_output_captured", "clipped_right"],
-		["Sop/unity_output_geometry", "clipped_right"],
-		["Sop/unity_output_hda", "clipped_right"],
-		["Sop/unity_output_instances", "clipped_right"],
-		["Sop/unity_output_maps", "clipped_right"]
+		["Sop/unity_output_captured", "clipped_left"],
+		["Sop/unity_output_geometry", "clipped_left"],
+		["Sop/unity_output_hda", "clipped_left"],
+		["Sop/unity_output_instances", "clipped_left"],
+		["Sop/unity_output_maps", "clipped_left"]
     ]
 }
