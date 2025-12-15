@@ -3,6 +3,93 @@ last_index = -1
 _last_selected_node_path = None
 
 
+def encode_rgb(rgb):
+    return ",".join(str(float(x)) for x in rgb[:3])
+
+
+def decode_rgb(s):
+    parts = [p.strip() for p in (s or "").split(",")]
+    if len(parts) < 3:
+        raise ValueError("Invalid rgb string")
+    return (float(parts[0]), float(parts[1]), float(parts[2]))
+
+
+def remove_c_like_comments(text):
+    def replacer(match):
+        s = match.group(0)
+        if s.startswith("/"):
+            return " "
+        return s
+
+    pattern = re.compile(
+        r"//.*?$|/\*.*?\*/|\'(?:\\\\.|[^\\\\\'])*\'|\"(?:\\\\.|[^\\\\\"])*\"",
+        re.DOTALL | re.MULTILINE,
+    )
+    return re.sub(pattern, replacer, text)
+
+
+def session_set(key):
+    """
+    Return a persistent set stored on hou.session under `key`.
+    Creates it if missing. Falls back to a temporary set on failure.
+    """
+    try:
+        reg = getattr(hou.session, key, None)
+        if isinstance(reg, set):
+            return reg
+        reg = set()
+        setattr(hou.session, key, reg)
+        return reg
+    except Exception:
+        return set()
+
+
+def defer(fn):
+    """
+    Execute `fn` on the next UI cycle if possible (hdefereval / event loop callback),
+    otherwise call immediately. Safe to call in headless contexts.
+    """
+    try:
+        if hasattr(hou, "ui") and hou.ui is not None:
+            try:
+                import hdefereval
+                hdefereval.executeDeferred(fn)
+                return
+            except Exception:
+                pass
+
+            holder = {"cb": None}
+
+            def _cb():
+                try:
+                    fn()
+                finally:
+                    try:
+                        hou.ui.removeEventLoopCallback(holder["cb"])
+                    except Exception:
+                        pass
+
+            holder["cb"] = _cb
+            hou.ui.addEventLoopCallback(_cb)
+        else:
+            fn()
+    except Exception:
+        pass
+
+
+def set_node_color(node, color):
+    """
+    Set node color accepting either hou.Color or (r,g,b) tuple.
+    """
+    try:
+        if isinstance(color, hou.Color):
+            node.setColor(color)
+        else:
+            node.setColor(hou.Color(color))
+    except Exception:
+        pass
+
+
 def getSelectedNode():
     if not hou.selectedNodes():
         return None

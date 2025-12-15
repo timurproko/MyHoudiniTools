@@ -1,5 +1,6 @@
 import hou
 import hou_module_loader
+import mytools
 
 
 def _load_constants():
@@ -10,35 +11,6 @@ def _load_constants():
         )
     except Exception:
         return None
-
-
-def _defer(fn):
-    try:
-        if hasattr(hou, "ui") and hou.ui is not None:
-            try:
-                import hdefereval
-                hdefereval.executeDeferred(fn)
-                return
-            except Exception:
-                pass
-
-            holder = {"cb": None}
-
-            def _cb():
-                try:
-                    fn()
-                finally:
-                    try:
-                        hou.ui.removeEventLoopCallback(holder["cb"])
-                    except Exception:
-                        pass
-
-            holder["cb"] = _cb
-            hou.ui.addEventLoopCallback(_cb)
-        else:
-            fn()
-    except Exception:
-        pass
 
 
 def _check_active_ctrl_exists(constants):
@@ -65,13 +37,6 @@ def _check_active_ctrl_exists(constants):
         pass
 
 
-def _set_node_color(node, color):
-    try:
-        node.setColor(color)
-    except Exception:
-        pass
-
-
 def _apply_active_color(node, constants):
     try:
         _check_active_ctrl_exists(constants)
@@ -89,9 +54,9 @@ def _apply_active_color(node, constants):
                 is_active = (node.path() == active_path)
 
         if is_active:
-            _set_node_color(node, constants.CTRL_COLOR_ACTIVE)
+            mytools.set_node_color(node, constants.CTRL_COLOR_ACTIVE)
         else:
-            _set_node_color(node, constants.CTRL_COLOR_INACTIVE)
+            mytools.set_node_color(node, constants.CTRL_COLOR_INACTIVE)
     except Exception:
         pass
 
@@ -164,13 +129,12 @@ def on_created(kwargs):
         if not (node.name() or "").upper().startswith((constants.CTRL_BASE_NAME or "").upper()):
             return
 
-        _defer(lambda: _apply_active_color(node, constants))
+        mytools.defer(lambda: _apply_active_color(node, constants))
     except Exception:
         pass
 
 
 def on_loaded(kwargs):
-    # Same behavior as on_created
     return on_created(kwargs)
 
 
@@ -201,7 +165,7 @@ def on_name_changed(kwargs):
                 _update_active_ctrl_if_renamed(constants, node)
                 _apply_active_color(node, constants)
 
-            _defer(_apply_after)
+            mytools.defer(_apply_after)
         finally:
             setattr(hou.session, "_CTRL_RENAME_GUARD", False)
     except Exception:

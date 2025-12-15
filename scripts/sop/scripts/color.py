@@ -1,20 +1,8 @@
 import hou
+import mytools
 
 
 _SESSION_KEY = "_MYTOOLS_COLOR_SYNC_CB"
-
-
-def _session_registry():
-    try:
-        reg = getattr(hou.session, _SESSION_KEY, None)
-        if isinstance(reg, set):
-            return reg
-        reg = set()
-        setattr(hou.session, _SESSION_KEY, reg)
-        return reg
-    except Exception:
-        return set()
-
 
 def _color_changed(node, _event_type=None, **kwargs):
     try:
@@ -37,7 +25,7 @@ def ensure_installed(node):
         sid = getattr(node, "sessionId", None)
         sid = sid() if callable(sid) else id(node)
 
-        reg = _session_registry()
+        reg = mytools.session_set(_SESSION_KEY)
         if sid in reg:
             return True
 

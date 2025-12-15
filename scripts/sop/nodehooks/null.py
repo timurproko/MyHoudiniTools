@@ -9,8 +9,8 @@ _env = hou_module_loader.load_from_hou_path(
 
 ENV_CTRL_NODE = _env.ENV_CTRL_NODE
 CTRL_BASE_NAME = _env.CTRL_BASE_NAME
-CTRL_COLOR_ACTIVE = _env.CTRL_COLOR_ACTIVE
-CTRL_COLOR_INACTIVE = _env.CTRL_COLOR_INACTIVE
+CTRL_COLOR_ACTIVE = hou.Color(_env.CTRL_COLOR_ACTIVE)
+CTRL_COLOR_INACTIVE = hou.Color(_env.CTRL_COLOR_INACTIVE)
 
 
 def handle_ctrl_lmb(uievent, ctx, allow_flag_click=False):

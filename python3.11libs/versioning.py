@@ -35,10 +35,8 @@ def splitver(string,frmats):
 
 
 def foldersearch(path,matchlist,frmat,sec):
-    ##default values
     padding = 3
     fmt = '_v'
-    ##default values
     for f in os.listdir(path[0]):
         result = splitver(f,frmat)
 
@@ -68,18 +66,12 @@ def incsave():
     
     path = hou.hipFile.path().rsplit('/',1)
     
-    ## Find if version exists
-    
     sec,frmat = splitver(path[1],['_v','_V'])
-    
-    ## Version Found
     
     if sec:
         matchlist = [sec[1]]
         padding = len(sec[1])
         matchlist = foldersearch(path,matchlist,[frmat],sec)[0]
-        
-    ## No Version
         
     else:
         sec = path[1].rsplit('.',1)
@@ -89,8 +81,6 @@ def incsave():
         frmat = ['_v','_V']
         
         matchlist,padding,frmat = foldersearch(path,['000'],frmat,sec)
-
-    ## Build Path & Save
 
     hippath = buildpath(padding,path,matchlist,frmat,sec)
 

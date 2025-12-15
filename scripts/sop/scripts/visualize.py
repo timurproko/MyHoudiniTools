@@ -1,6 +1,19 @@
 import hou
 
 
+def _resolve_node(node=None, kwargs=None):
+    if node is not None:
+        return node
+    if isinstance(kwargs, dict):
+        n = kwargs.get("node")
+        if n is not None:
+            return n
+    try:
+        return hou.node(hou.pwd().path())
+    except Exception:
+        return None
+
+
 
 def visualize_marker():
     node = hou.node(hou.pwd().path())
@@ -273,8 +286,10 @@ def visualize_mask():
 
 
 
-def visualize_gradient():
-    node = hou.node(hou.pwd().path())
+def visualize_gradient(node=None, kwargs=None):
+    node = _resolve_node(node=node, kwargs=kwargs)
+    if node is None:
+        return
     
     vis = hou.viewportVisualizers.createVisualizer(hou.viewportVisualizers.type('vis_color'), 
         hou.viewportVisualizerCategory.Node, 

@@ -1,21 +1,17 @@
 import hou
 import re
 import time
+import hou_module_loader
+import mytools
 
 
-_SHOW_PARMS_COLOR = (0.9959999918937683, 0.9330000281333923, 0.0)
-_SHOW_PARMS_PREV_COLOR_USERDATA_KEY = "mytools_showparms_prev_color"
+_vex_consts = hou_module_loader.load_from_hou_path(
+    "scripts/sop/constants/vex_wrangle.py",
+    "_mytools_vex_wrangle_constants",
+)
 
-
-def _encode_rgb(rgb):
-    return ",".join(str(float(x)) for x in rgb[:3])
-
-
-def _decode_rgb(s):
-    parts = [p.strip() for p in (s or "").split(",")]
-    if len(parts) < 3:
-        raise ValueError("Invalid rgb string")
-    return (float(parts[0]), float(parts[1]), float(parts[2]))
+_SHOW_PARMS_COLOR = _vex_consts.SHOW_PARMS_COLOR
+_SHOW_PARMS_PREV_COLOR_USERDATA_KEY = _vex_consts.SHOW_PARMS_PREV_COLOR_USERDATA_KEY
 
 
 def toggle_node_color_from_current(
@@ -29,7 +25,7 @@ def toggle_node_color_from_current(
     prev = node.userData(userdata_key)
     if prev:
         try:
-            node.setColor(hou.Color(_decode_rgb(prev)))
+            node.setColor(hou.Color(mytools.decode_rgb(prev)))
         finally:
             try:
                 node.destroyUserData(userdata_key)
@@ -37,7 +33,7 @@ def toggle_node_color_from_current(
                 node.setUserData(userdata_key, "")
         return
 
-    node.setUserData(userdata_key, _encode_rgb(node.color().rgb()))
+    node.setUserData(userdata_key, mytools.encode_rgb(node.color().rgb()))
     node.setColor(hou.Color(highlight_color))
 
 
@@ -98,21 +94,6 @@ def vscEmbed(parm, ide):
 # Snippet from Markus Jarderot via StackOverflow
 # This will miss some edge cases but generally
 # avoid picking up commented out ch references.
-def _remove_comments(text):
-    def replacer(match):
-        s = match.group(0)
-        if s.startswith("/"):
-            return " "
-        else:
-            return s
-
-    pattern = re.compile(
-        r"//.*?$|/\*.*?\*/|\'(?:\\\\.|[^\\\\\'])*\'|\"(?:\\\\.|[^\\\\\"])*\"",
-        re.DOTALL | re.MULTILINE,
-    )
-    return re.sub(pattern, replacer, text)
-
-
 def createSpareParmsFromChCalls(node, parmname):
     """ For each ch() call in the given parm name create
         a corresponding spare parameter on the node.
@@ -139,7 +120,7 @@ def createSpareParmsFromChCalls(node, parmname):
 
     # Strip out comments.  We only want
     # active ch() calls.
-    code = _remove_comments(code)
+    code = mytools.remove_c_like_comments(code)
 
     # Now find all ch() patterns.
     chcalls = [

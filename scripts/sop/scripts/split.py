@@ -1,27 +1,16 @@
 import hou
 import hou_module_loader
+import mytools
 
 _split_consts = hou_module_loader.load_from_hou_path(
     "scripts/sop/constants/split.py",
     "_mytools_split_constants",
 )
 
-NEGATE_OFF_COLOR = _split_consts.NEGATE_OFF_COLOR
-NEGATE_ON_COLOR = _split_consts.NEGATE_ON_COLOR
+NEGATE_OFF_COLOR = hou.Color(_split_consts.NEGATE_OFF_COLOR)
+NEGATE_ON_COLOR = hou.Color(_split_consts.NEGATE_ON_COLOR)
 
 _SESSION_KEY = "_MYTOOLS_SPLIT_NEGATE_COLOR_SIDS"
-
-
-def _registry():
-    try:
-        reg = getattr(hou.session, _SESSION_KEY, None)
-        if reg is None:
-            reg = set()
-            setattr(hou.session, _SESSION_KEY, reg)
-        return reg
-    except Exception:
-        return set()
-
 
 def is_split(node):
     try:
@@ -62,7 +51,7 @@ def ensure_installed(node):
         if not is_split(node):
             return False
         sid = node.sessionId()
-        reg = _registry()
+        reg = mytools.session_set(_SESSION_KEY)
         if sid not in reg:
             node.addEventCallback((hou.nodeEventType.ParmTupleChanged,), _negate_changed)
             reg.add(sid)
