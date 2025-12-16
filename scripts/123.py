@@ -2,6 +2,10 @@ import hdefereval, os, hou
 import mytools, hotkeySystem_patch
 
 
+# Turn on AutoSave
+# hou.appendSessionModuleSource('''hou.hscript("autosave on")''')
+
+
 # Cleanup Keymap
 if os.path.exists(hou.text.expandString("$HOUDINI_USER_PREF_DIR/Houdini.keymap2.overrides")):
     os.remove(hou.text.expandString("$HOUDINI_USER_PREF_DIR/Houdini.keymap2.overrides"))
@@ -20,10 +24,6 @@ HOUDINI_USER_PREF_DIR = hou.homeHoudiniDirectory()
 hou.node('/obj').createNode('geo', 'geo').setSelected(True, True)
 
 
-# Turn on AutoSave
-# hou.appendSessionModuleSource('''hou.hscript("autosave on")''')
-
-
 # Initialize Asset Definition Toolbar
 def initAssetDefinitionToolbar():
     mytools.init_asset_bar_menu_sync(force=False)
@@ -31,6 +31,10 @@ hdefereval.executeDeferred(initAssetDefinitionToolbar)
 
 
 # Hide UI Elements
+def hideAssetDefinitionToolbar():
+    mytools.set_asset_def_toolbar_state(3)
+hdefereval.executeDeferred(hideAssetDefinitionToolbar)
+
 def hideShelf():
     hou.ui.curDesktop().shelfDock().show(0)
     hou.hscript("set -g shelf_tab_val = '0'")
