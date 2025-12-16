@@ -2,6 +2,10 @@ import hdefereval, os, hou
 import mytools, hotkeySystem_patch
 
 
+# Set User Folder
+HOUDINI_USER_PREF_DIR = hou.homeHoudiniDirectory()
+
+
 # Turn on AutoSave
 # hou.appendSessionModuleSource('''hou.hscript("autosave on")''')
 
@@ -14,10 +18,6 @@ if os.path.exists(hou.text.expandString("$HOUDINI_USER_PREF_DIR/Modeler.keymap2.
 def updatekeymap():
     mytools.update_keymap()
 hdefereval.executeDeferred(updatekeymap)
-
-
-# Set User Folder
-HOUDINI_USER_PREF_DIR = hou.homeHoudiniDirectory()
 
 
 # Create Default Geo
@@ -51,8 +51,7 @@ def setUVSettings():
     mytools.set_display_matcap("$HOUDINI_USER_PREF_DIR/packages/MyTools/lookdev/matcaps/ceramic_lightbulb.exr")
 hdefereval.executeDeferred(setUVSettings)
 
-
-# Preload desktops once at startup to avoid lag when opening Desktop menu
-def _preload_desktop_cache():
-    mytools.build_desktop_cache(force=True)
-hdefereval.executeDeferred(_preload_desktop_cache)
+# Precache Desktops
+def precacheDesktops():
+    mytools.build_desktop_cache()
+hdefereval.executeDeferred(precacheDesktops)

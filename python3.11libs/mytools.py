@@ -1,86 +1,61 @@
-import os, hou, toolutils, time, hdefereval, re
-last_index = -1
+import os, hou, toolutils, hdefereval, re
+
+
+_last_matcap_index = -1
 _last_selected_node_path = None
 _asset_bar_sync_cb = None
 _asset_bar_sync_last = None
 
-# -----------------------------------------------------------------------------
-# Desktop cache (avoid expensive `hou.ui.desktops()` calls inside dynamic menus)
-# -----------------------------------------------------------------------------
 
-_DESKTOP_CACHE_SESSION_KEY = "_mytools_desktop_cache"
+_DESKTOP_CACHE_KEY = "_mytools_desktop_cache"
+_AXIOM_SOP_TYPE = hou.nodeType(hou.sopNodeTypeCategory(), "axiom_solver::3.2")
+_BOUNDING_BOX_SHADING_PAIR = (hou.glShadingType.WireBoundingBox, hou.glShadingType.ShadedBoundingBox)
+_SHADING_MODE_PAIRS = [
+    (hou.glShadingType.WireGhost, hou.glShadingType.Wire),
+    (hou.glShadingType.HiddenLineInvisible, hou.glShadingType.HiddenLineGhost),
+    (hou.glShadingType.Flat, hou.glShadingType.FlatWire),
+    (hou.glShadingType.Smooth, hou.glShadingType.SmoothWire),
+    (hou.glShadingType.MatCap, hou.glShadingType.MatCapWire),
+]
 
 
-def build_desktop_cache(force: bool = False):
-    """
-    Build (or return) a cached snapshot of available desktops.
-
-    Stored on `hou.session` to survive module reload patterns that can happen
-    in Houdini sessions.
-    """
+def build_desktop_cache():
+    """Build desktop cache at startup - stores names and desktop objects."""
     try:
-        cache = getattr(hou.session, _DESKTOP_CACHE_SESSION_KEY, None)
-        if not force and isinstance(cache, dict) and cache.get("names"):
-            return cache
-
-        desktops = list(hou.ui.desktops()) if hasattr(hou, "ui") and hou.ui else []
-        names = [d.name() for d in desktops]
-        desk_map = {d.name(): d for d in desktops}
-
-        cache = {
-            "built_at": time.time(),
-            "names": names,
-            "map": desk_map,
-        }
-        setattr(hou.session, _DESKTOP_CACHE_SESSION_KEY, cache)
-        return cache
+        desktops = list(hou.ui.desktops())
+        desktop_map = {d.name(): d for d in desktops}
+        desktop_names = list(desktop_map.keys())
+        setattr(hou.session, _DESKTOP_CACHE_KEY, {
+            "names": desktop_names,
+            "map": desktop_map
+        })
     except Exception:
-        return {"built_at": time.time(), "names": [], "map": {}}
+        setattr(hou.session, _DESKTOP_CACHE_KEY, {"names": [], "map": {}})
 
 
-def get_desktop_names_cached(force: bool = False):
-    return build_desktop_cache(force=force).get("names", [])
-
-
-def get_desktop_map_cached(force: bool = False):
-    return build_desktop_cache(force=force).get("map", {})
-
-
-def get_current_desktop_name():
+def get_desktop_names():
+    """Get cached desktop names for menu."""
     try:
-        return hou.ui.curDesktop().name()
+        cache = getattr(hou.session, _DESKTOP_CACHE_KEY, None)
+        if cache and cache.get("names"):
+            return cache["names"]
     except Exception:
-        return ""
+        pass
+    return [d.name() for d in hou.ui.desktops()]
 
 
-def set_desktop_current(desktop_name: str) -> bool:
-    """
-    Set desktop by name using cached desktop objects when possible.
-    Returns True if a switch happened (or desktop already current).
-    """
+def get_desktop_by_name(name):
+    """Get desktop object by name from cache."""
     try:
-        if not desktop_name:
-            return False
-
-        current = get_current_desktop_name()
-        if desktop_name == current:
-            return True
-
-        desk_map = get_desktop_map_cached(force=False)
-        desk = desk_map.get(desktop_name)
-
-        # Fallback: rebuild cache once if missing/stale
-        if desk is None:
-            desk_map = get_desktop_map_cached(force=True)
-            desk = desk_map.get(desktop_name)
-
-        if desk is None:
-            return False
-
-        desk.setAsCurrent()
-        return True
+        cache = getattr(hou.session, _DESKTOP_CACHE_KEY, None)
+        if cache and cache.get("map"):
+            return cache["map"].get(name)
     except Exception:
-        return False
+        pass
+    for desktop in hou.ui.desktops():
+        if desktop.name() == name:
+            return desktop
+    return None
 
 
 def encode_rgb(rgb):
@@ -181,13 +156,11 @@ def getSelectedNode():
     return selectedNode
 
 
-
 def isNodesExists(selectedNode):
     for node in selectedNode.parent().children():
         if node.type().name() == 'print':
             return True
     return False
-
 
 
 def deleteNodes(selectedNode):
@@ -199,13 +172,11 @@ def deleteNodes(selectedNode):
             node.destroy()
 
 
-
 def getNodePath():
     node = getSelectedNode()
     path = node.parent().path()
     nodePath = hou.node(path)
     return nodePath
-
 
 
 def createPrintNode(selectedNode, outputIndex):
@@ -218,12 +189,10 @@ def createPrintNode(selectedNode, outputIndex):
         printNode.moveToGoodPosition(relative_to_inputs=True, move_inputs=False, move_outputs=True, move_unconnected=True)
 
 
-
 def openFile(filePath):
     home = hou.homeHoudiniDirectory()
     file = home+filePath
     os.startfile(file, 'open')
-
 
 
 def toggle_stowbars_original(hidemainmenu=False):
@@ -250,7 +219,6 @@ def toggle_stowbars_original(hidemainmenu=False):
     if hidemainmenu:
         hou.setPreference('showmenu.val',['0','1'][not b])
     hou.ui.setHideAllMinimizedStowbars(b)
-
 
 
 def toggle_fullscreen():
@@ -282,7 +250,6 @@ def toggle_fullscreen():
     toggle_stowbars(0)
 
 
-
 def toggle_stowbars(b = -1):
     if b == -1:
         b = hou.ui.hideAllMinimizedStowbars()
@@ -293,7 +260,6 @@ def toggle_stowbars(b = -1):
         hou.ui.setHideAllMinimizedStowbars(0)
     else:
         return
-
 
 
 def toggle_shelf(b = -1):
@@ -314,14 +280,12 @@ def toggle_shelf(b = -1):
             return
 
 
-
 def toggle_menu():
     current_val = hou.getPreference('showmenu.val')
     if current_val == '0':
         hou.setPreference('showmenu.val',['0','1'][1])
     else:
         hou.setPreference('showmenu.val',['0','1'][0])
-
 
 
 def toggle_bars():
@@ -345,7 +309,6 @@ def toggle_bars():
             toggle_viewport_toolbars(paneTab)
 
 
-
 def toggle_toolbar(toolbar_name, state=-1):
     pane_tab = hou.ui.paneTabUnderCursor()
     if pane_tab and pane_tab.type() == hou.paneTabType.SceneViewer:
@@ -360,7 +323,6 @@ def toggle_toolbar(toolbar_name, state=-1):
             toggle_method(new_state)
 
 
-
 def get_asset_def_toolbar_state():
     state = hou.getPreference('parmdialog.asset_bar.val')
     
@@ -369,7 +331,6 @@ def get_asset_def_toolbar_state():
         hou.setPreference('parmdialog.asset_bar.val', state)
     
     return str(state).strip()
-
 
 
 def sync_asset_bar_menu_global(force: bool = False):
@@ -394,7 +355,6 @@ def sync_asset_bar_menu_global(force: bool = False):
         pass
 
 
-
 def start_asset_bar_menu_sync():
     global _asset_bar_sync_cb
     if _asset_bar_sync_cb is not None:
@@ -412,13 +372,11 @@ def start_asset_bar_menu_sync():
         _asset_bar_sync_cb = None
 
 
-
 def init_asset_bar_menu_sync(force: bool = False):
     get_asset_def_toolbar_state()
     start_asset_bar_menu_sync()
     if force:
         sync_asset_bar_menu_global(force=True)
-
 
 
 def set_asset_def_toolbar_state(state):
@@ -429,7 +387,6 @@ def set_asset_def_toolbar_state(state):
     sync_asset_bar_menu_global(force=True)
 
 
-
 def toggle_pin():
     paneTab = hou.ui.paneTabUnderCursor()
     if paneTab:
@@ -437,7 +394,6 @@ def toggle_pin():
                     b = paneTab.isPin()
                     b = not b
                     paneTab.setPin(b)
-
 
 
 def toggle_bg():
@@ -462,7 +418,6 @@ def toggle_bg():
                 st.setColorScheme(color_dict[next_color_name])
 
 
-
 def set_display_material(intensity, dir, defmatdiff, defmatspec, defmatamb, defmatemit):
     paneTabs = hou.ui.curDesktop().paneTabs()
     for paneTab in paneTabs:
@@ -481,7 +436,6 @@ def set_display_material(intensity, dir, defmatdiff, defmatspec, defmatamb, defm
                 st.setDefaultMaterialEmission(defmatemit)
 
 
-
 def set_display_uv(filepath, scale):
     paneTabs = hou.ui.curDesktop().paneTabs()
     for paneTab in paneTabs:
@@ -492,7 +446,6 @@ def set_display_uv(filepath, scale):
                 st = cv.settings()
                 st.setUVMapTexture(filepath)
                 st.setUVMapScale(scale)
-
 
 
 def set_display_matcap(filepath):
@@ -506,9 +459,8 @@ def set_display_matcap(filepath):
                 st.setDefaultMaterialMatCapFile(filepath)
 
 
-
 def toggle_matcaps_in_directory(directory):
-    global last_index
+    global _last_matcap_index
     exr_files = [f for f in os.listdir(directory) if f.lower().endswith('.exr')]
     exr_files.sort()
 
@@ -516,13 +468,12 @@ def toggle_matcaps_in_directory(directory):
         print("No .exr files found in the directory.")
         return
 
-    last_index = (last_index + 1) % len(exr_files)
-    filepath = os.path.join(directory, exr_files[last_index])
+    _last_matcap_index = (_last_matcap_index + 1) % len(exr_files)
+    filepath = os.path.join(directory, exr_files[_last_matcap_index])
     filename = os.path.basename(filepath)
 
     set_display_matcap(filepath)
     hou.ui.setStatusMessage(f"Matcap set to {filename}")
-
 
 
 def preview_output():
@@ -573,7 +524,6 @@ def preview_output():
             result.setNextInput(curnode, 0)
 
 
-
 def preview_color():
     if not hou.selectedNodes():
         return
@@ -593,7 +543,6 @@ def preview_color():
         if node.type().name() == "geometryvopoutput":
             result = node
             result.setInput(3,curnode,0)
-
 
 
 def review_redshift():
@@ -651,7 +600,6 @@ def review_redshift():
                 print("No redshift_material node with the color (0.99, 0.66, 0) found")
 
 
-
 def preview_console():
     node = getSelectedNode()
     if node is None:
@@ -660,7 +608,6 @@ def preview_console():
         deleteNodes(node)
         return
     createPrintNode(node, 0)
-
 
 
 def preview_uv():
@@ -677,7 +624,6 @@ def preview_uv():
     scene_viewer = toolutils.sceneViewer()
     vs = scene_viewer.curViewport().settings()
     vs.backgroundImage(hou.viewportBGImageView.UV, 0).setImageFile(file)
-
 
 
 def switch_to_pane(paneType, showNetworkControls=0):
@@ -700,7 +646,6 @@ def switch_to_pane(paneType, showNetworkControls=0):
 
             except hou.ObjectWasDeleted:
                 pass
-
 
 
 def switch_to_pane_toggleViewers():
@@ -733,14 +678,12 @@ def switch_to_pane_toggleViewers():
     switch_to_pane(next_type)
 
 
-
 def switch_to_pythonPane(pythonPaneType, showNetworkControls=1):
     paneTab = hou.ui.paneTabUnderCursor()
     if paneTab:
         paneTab = paneTab.setType(hou.paneTabType.PythonPanel)
         paneTab.setActiveInterface(hou.pypanel.interfaceByName(pythonPaneType))
         paneTab.showNetworkControls(showNetworkControls)
-
 
 
 def switch_to_tab(tabIndex, isDetailsView=False):
@@ -762,7 +705,6 @@ def switch_to_tab(tabIndex, isDetailsView=False):
             tabs = pane.tabs()
             if tabIndex < len(tabs):
                 tabs[tabIndex].setIsCurrentTab()
-
 
 
 def switch_next_tab(isDetailsView=False, direction=1):
@@ -791,7 +733,6 @@ def switch_next_tab(isDetailsView=False, direction=1):
                 tabs[next_index].setIsCurrentTab()
 
 
-
 def change_node_color():
     sel = hou.selectedItems()
     if len(sel) <= 0:
@@ -817,7 +758,6 @@ def change_node_color():
                 item.setColor(color)
 
 
-
 def setNodeAsSelected(node=None):
     if not node:
         return
@@ -831,7 +771,6 @@ def setNodeAsSelected(node=None):
                 pane.setCurrentNode(node)
             return
     editors[0].setCurrentNode(node)
-
 
 
 def create_obj_merge(nodes=None, name=None):
@@ -869,12 +808,10 @@ def create_obj_merge(nodes=None, name=None):
         m.setColor(color)
 
 
-
 def set_playback_frame(frame=None):
     if not frame:
         frame = hou.playbar.frameRange()[0]
     hou.setFrame(frame)
-
 
 
 def toggle_sim():
@@ -889,11 +826,8 @@ def toggle_sim():
             
 
 
-
-AXIOM_SOP_TYPE = hou.nodeType(hou.sopNodeTypeCategory(), "axiom_solver::3.2")
 def is_axiom_node(node):
-    return node.type() == AXIOM_SOP_TYPE
-
+    return node.type() == _AXIOM_SOP_TYPE
 
 
 def toggle_axiom_sim(value = None):
@@ -914,7 +848,6 @@ def toggle_axiom_sim(value = None):
                         value = 0 if node.evalParm("enableSimulation") else 1
 
                     node.parm("enableSimulation").set(value)
-
 
 
 def ctrl_select():
@@ -946,13 +879,11 @@ def ctrl_select():
         _last_selected_node_path = None
 
 
-
 def open_floating_pane(type, network = 0, pos = (), size = ()):
     paneTab = hou.ui.paneTabUnderCursor()
     paneTab = hou.ui.curDesktop().createFloatingPaneTab(type, pos, size)
     if not network:
         toggle_ui_network(paneTab, 0)
-
 
 
 def toggle_ui_network(paneTab = None, b = -1):
@@ -970,13 +901,11 @@ def toggle_ui_network(paneTab = None, b = -1):
                 paneTab.showNetworkControls(1)
 
 
-
 def toggle_ui_desktops():
     toggle_desktops()
     toggle_stowbars(1)
     toggle_stowbars(0)
     update_keymap()
-
 
 
 def toggle_desktops():
@@ -991,7 +920,6 @@ def toggle_desktops():
         next_index = (current_index + 1) % len(desktop_names)
         next_desktop_name = desktop_names[next_index]
         desktops_dict[next_desktop_name].setAsCurrent()
-
 
 
 def update_keymap():
@@ -1009,7 +937,6 @@ def update_keymap():
         switch_keymap(houdini_keymap)
     elif "Modeler" in _current_desktop:
         switch_keymap(modeler_keymap)
-
 
 
 def open_keymap_manager():
@@ -1042,7 +969,6 @@ def open_keymap_manager():
         switch_keymap_modeler()
 
 
-
 def get_scene_viewer_under_cursor():
     pane = hou.ui.paneTabUnderCursor()
     if pane and pane.type() == hou.paneTabType.SceneViewer:
@@ -1050,24 +976,8 @@ def get_scene_viewer_under_cursor():
     return None
 
 
-
-_BOUNDING_BOX_SHADING_PAIR = (hou.glShadingType.WireBoundingBox, hou.glShadingType.ShadedBoundingBox)
-
-
-
-_SHADING_MODE_PAIRS = [
-    (hou.glShadingType.WireGhost, hou.glShadingType.Wire),
-    (hou.glShadingType.HiddenLineInvisible, hou.glShadingType.HiddenLineGhost),
-    (hou.glShadingType.Flat, hou.glShadingType.FlatWire),
-    (hou.glShadingType.Smooth, hou.glShadingType.SmoothWire),
-    (hou.glShadingType.MatCap, hou.glShadingType.MatCapWire),
-]
-
-
-
 def _shading_mode_sets_from_pairs(pairs):
     return [a for (a, _b) in pairs], [b for (_a, b) in pairs]
-
 
 
 def toggle_shading_mode():
@@ -1109,7 +1019,6 @@ def toggle_shading_mode():
         display_set.setShadedMode(next_mode)
 
 
-
 def toggle_shading_mode_pair():
     viewer = get_scene_viewer_under_cursor()
     if not viewer:
@@ -1136,7 +1045,6 @@ def toggle_shading_mode_pair():
             elif current_mode == mode_b:
                 display_set.setShadedMode(mode_a)
                 break
-
 
 
 def convert_hda_to_subnet():

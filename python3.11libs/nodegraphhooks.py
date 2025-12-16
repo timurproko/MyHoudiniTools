@@ -1,5 +1,4 @@
 from __future__ import print_function
-
 import hou
 import os
 import sys
@@ -11,13 +10,22 @@ import nodegraphutils as utils
 import nodegraphview as view
 from collections import defaultdict
 from canvaseventtypes import *
+from PySide6 import QtCore, QtWidgets, QtGui
 
 
 _utility_ui = None
+_utility_generic = None
+_utility_hotkey_system = None
+this = sys.modules[__name__]
+currentdir = os.path.dirname(os.path.realpath(__file__))
+fs_watcher = QtCore.QFileSystemWatcher()
+
+
 try:
     import utility_ui as _utility_ui
 except Exception:
     _utility_ui = None
+
 
 def storeVisibleBounds(*_args, **_kwargs):
     """No-op fallback when HotkeySystem is not available."""
@@ -29,7 +37,6 @@ def storeVisibleBounds(*_args, **_kwargs):
     return None
 
 
-_utility_generic = None
 try:
     import utility_generic as _utility_generic
 except Exception:
@@ -89,13 +96,11 @@ class _UtilityGenericProxy(object):
 utility_generic = _UtilityGenericProxy()
 
 
-_utility_hotkey_system = None
 try:
     import utility_hotkey_system as _utility_hotkey_system
 except Exception:
     _utility_hotkey_system = None
 
-from PySide6 import QtCore, QtWidgets, QtGui
 import nodegraphbase as base
 import nodegraphstates as states
 from nodes import nodehook_dispatch
@@ -372,9 +377,6 @@ def findNearestNode(editor):
         return None
 
 
-this = sys.modules[__name__]
-currentdir = os.path.dirname(os.path.realpath(__file__))
-
 def __reload_pythonlibs(showstatus=True):
     if showstatus:
         print("Reloading hotkey system...")
@@ -385,7 +387,6 @@ def __reload_pythonlibs(showstatus=True):
     except Exception:
         pass
 
-fs_watcher = QtCore.QFileSystemWatcher()
 fs_watcher.addPath(os.path.join(currentdir, "nodegraphhooks.py"))
 try:
     _uhs_path = os.path.join(currentdir, "utility_hotkey_system.py")

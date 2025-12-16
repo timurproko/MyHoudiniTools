@@ -6,12 +6,9 @@
                 <contentsScriptCode>
 <![CDATA[
 import mytools
-current = mytools.get_current_desktop_name()
 menu_items = []
-for name in mytools.get_desktop_names_cached():
-    # Visual "radio" indicator (filled for current desktop)
-    label = ("● " if name == current else "○ ") + name
-    menu_items += [name, label]
+for name in mytools.get_desktop_names():
+    menu_items.extend([name, name])
 return menu_items
 ]]>
                 </contentsScriptCode>
@@ -20,8 +17,9 @@ return menu_items
 <![CDATA[
 import mytools
 selected_desktop = kwargs["selectedtoken"]
-did_switch = mytools.set_desktop_current(selected_desktop)
-if did_switch:
+desktop = mytools.get_desktop_by_name(selected_desktop)
+if desktop:
+    desktop.setAsCurrent()
     mytools.toggle_stowbars(1)
     mytools.toggle_stowbars(0)
     mytools.update_keymap()
