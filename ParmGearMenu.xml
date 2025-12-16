@@ -6,6 +6,13 @@
     <insertBefore />
 <scriptMenuStripRadio>
     <variableName>asset_bar_val</variableName>
+    <scriptCode><![CDATA[
+# Sync the radio-strip global from the real source-of-truth preference.
+# Houdini's radio menus are driven by a Houdini global variable, so we keep
+# `asset_bar_val` synced to `parmdialog.asset_bar.val`.
+import mytools
+mytools.sync_asset_bar_menu_global(force=True)
+]]></scriptCode>
 
     <scriptRadioItem id="h.asset_bar_all">
         <label>Show Always</label>
