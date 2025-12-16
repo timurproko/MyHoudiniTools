@@ -823,27 +823,10 @@ def ctrl_select():
     if not ctx:
         return
     
-    selected_nodes = [n for n in hou.selectedNodes() if n != ctrl_node]
-    
-    if not selected_nodes and not ctrl_node.isSelected():
-        for n in ctx.pwd().children():
-            n.setSelected(False)
-        ctrl_node.setSelected(True, clear_all_selected=True)
-        _last_selected_node_path = None
-    elif selected_nodes:
-        _last_selected_node_path = selected_nodes[0].path()
-        for n in ctx.pwd().children():
-            n.setSelected(False)
-        ctrl_node.setSelected(True, clear_all_selected=True)
-    elif ctrl_node.isSelected() and _last_selected_node_path:
-        last_node = hou.node(_last_selected_node_path)
-        if last_node:
-            for n in ctx.pwd().children():
-                n.setSelected(False)
-            last_node.setSelected(True, clear_all_selected=True)
-            _last_selected_node_path = None
-        else:
-            _last_selected_node_path = None
+    if ctrl_node.isSelected():
+        ctrl_node.setSelected(False)
+    else:
+        ctrl_node.setSelected(True)
 
 
 
