@@ -19,43 +19,46 @@ _SHADING_MODE_PAIRS = [
 ]
 
 
-def build_desktop_cache():
-    """Build desktop cache at startup - stores names and desktop objects."""
+def _build_desktop_cache_lazy():
+    """Build desktop cache lazily on first access - stores names and desktop objects."""
+    try:
+        cache = getattr(hou.session, _DESKTOP_CACHE_KEY, None)
+        if cache and cache.get("names") and cache.get("map"):
+            return cache
+    except Exception:
+        pass
+    
     try:
         desktops = list(hou.ui.desktops())
         desktop_map = {d.name(): d for d in desktops}
         desktop_names = list(desktop_map.keys())
-        setattr(hou.session, _DESKTOP_CACHE_KEY, {
+        cache = {
             "names": desktop_names,
             "map": desktop_map
-        })
+        }
+        setattr(hou.session, _DESKTOP_CACHE_KEY, cache)
+        return cache
     except Exception:
-        setattr(hou.session, _DESKTOP_CACHE_KEY, {"names": [], "map": {}})
+        cache = {"names": [], "map": {}}
+        setattr(hou.session, _DESKTOP_CACHE_KEY, cache)
+        return cache
+
+
+def build_desktop_cache():
+    """Build desktop cache - kept for backwards compatibility, now uses lazy loading."""
+    _build_desktop_cache_lazy()
 
 
 def get_desktop_names():
-    """Get cached desktop names for menu."""
-    try:
-        cache = getattr(hou.session, _DESKTOP_CACHE_KEY, None)
-        if cache and cache.get("names"):
-            return cache["names"]
-    except Exception:
-        pass
-    return [d.name() for d in hou.ui.desktops()]
+    """Get desktop names - uses lazy cache."""
+    cache = _build_desktop_cache_lazy()
+    return cache.get("names", [])
 
 
 def get_desktop_by_name(name):
-    """Get desktop object by name from cache."""
-    try:
-        cache = getattr(hou.session, _DESKTOP_CACHE_KEY, None)
-        if cache and cache.get("map"):
-            return cache["map"].get(name)
-    except Exception:
-        pass
-    for desktop in hou.ui.desktops():
-        if desktop.name() == name:
-            return desktop
-    return None
+    """Get desktop object by name - uses lazy cache."""
+    cache = _build_desktop_cache_lazy()
+    return cache.get("map", {}).get(name)
 
 
 def encode_rgb(rgb):
@@ -909,17 +912,50 @@ def toggle_ui_desktops():
 
 
 def toggle_desktops():
-        desktops_dict = {desktop.name(): desktop for desktop in hou.ui.desktops()}
-        desktop_names = list(desktops_dict.keys())
-
+    """Toggle to next desktop and update keymap - uses lazy cache."""
+    try:
+        cache = _build_desktop_cache_lazy()
+        desktop_names = cache.get("names", [])
+        desktop_map = cache.get("map", {})
+        
+        if not desktop_names:
+            return
+        
         current_desktop = hou.ui.curDesktop()
         current_desktop_name = current_desktop.name()
 
-        current_index = desktop_names.index(current_desktop_name)
+        try:
+            current_index = desktop_names.index(current_desktop_name)
+        except ValueError:
+            cache = _build_desktop_cache_lazy()
+            desktop_names = cache.get("names", [])
+            desktop_map = cache.get("map", {})
+            if not desktop_names:
+                return
+            current_index = 0
 
         next_index = (current_index + 1) % len(desktop_names)
         next_desktop_name = desktop_names[next_index]
-        desktops_dict[next_desktop_name].setAsCurrent()
+        next_desktop = desktop_map.get(next_desktop_name)
+        
+        if next_desktop:
+            next_desktop.setAsCurrent()
+            update_keymap()
+    except Exception:
+        try:
+            desktops_dict = {desktop.name(): desktop for desktop in hou.ui.desktops()}
+            desktop_names = list(desktops_dict.keys())
+
+            current_desktop = hou.ui.curDesktop()
+            current_desktop_name = current_desktop.name()
+
+            current_index = desktop_names.index(current_desktop_name)
+            next_index = (current_index + 1) % len(desktop_names)
+            next_desktop_name = desktop_names[next_index]
+            desktops_dict[next_desktop_name].setAsCurrent()
+            update_keymap()
+        except Exception:
+            pass
 
 
 def update_keymap():

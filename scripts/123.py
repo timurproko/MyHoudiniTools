@@ -2,7 +2,8 @@ import hdefereval, os, hou
 import mytools, hotkeySystem_patch
 
 
-# Set User Folder
+# Global Variables
+PRELOAD_DESKTOP_CACHE = False
 HOUDINI_USER_PREF_DIR = hou.homeHoudiniDirectory()
 
 
@@ -51,7 +52,9 @@ def setUVSettings():
     mytools.set_display_matcap("$HOUDINI_USER_PREF_DIR/packages/MyTools/lookdev/matcaps/ceramic_lightbulb.exr")
 hdefereval.executeDeferred(setUVSettings)
 
-# Precache Desktops
-def precacheDesktops():
-    mytools.build_desktop_cache()
-hdefereval.executeDeferred(precacheDesktops)
+
+# Desktop Cache Preloading
+if PRELOAD_DESKTOP_CACHE:
+    def precacheDesktops():
+        mytools.build_desktop_cache()
+    hdefereval.executeDeferred(precacheDesktops)
