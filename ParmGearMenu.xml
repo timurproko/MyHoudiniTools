@@ -6,54 +6,53 @@
     <insertBefore />
 <scriptMenuStripRadio>
     <variableName>asset_bar_val</variableName>
-    <scriptCode><![CDATA[
-# Sync the radio-strip global from the real source-of-truth preference.
-# Houdini's radio menus are driven by a Houdini global variable, so we keep
-# `asset_bar_val` synced to `parmdialog.asset_bar.val`.
+<scriptCode>
+<![CDATA[
 import mytools
 mytools.sync_asset_bar_menu_global(force=True)
-]]></scriptCode>
+]]>
+</scriptCode>
 
     <scriptRadioItem id="h.asset_bar_all">
         <label>Show Always</label>
         <variableValue>0</variableValue>
-        <scriptCode>
+<scriptCode>
 <![CDATA[
 import mytools
-mytools.show_asset_def_toolbar()
+mytools.set_asset_def_toolbar_state(0)
 ]]>
-        </scriptCode>
+</scriptCode>
     </scriptRadioItem>
         <scriptRadioItem id="h.asset_bar_multi">
         <label>Show When Needed</label>
         <variableValue>1</variableValue>
-        <scriptCode>
+<scriptCode>
 <![CDATA[
 import mytools
-mytools.show_asset_def_toolbar_when_needed()
+mytools.set_asset_def_toolbar_state(1)
 ]]>
-        </scriptCode>
+</scriptCode>
     </scriptRadioItem>
     <scriptRadioItem id="h.asset_bar_current">
         <label>Show Current Definition</label>
         <variableValue>2</variableValue>
 
-        <scriptCode>
+<scriptCode>
 <![CDATA[
 import mytools
-mytools.show_asset_def_toolbar_current_def()
+mytools.set_asset_def_toolbar_state(2)
 ]]>
-        </scriptCode>
+</scriptCode>
     </scriptRadioItem>
     <scriptRadioItem id="h.asset_bar_hide">
         <label>Hide</label>
         <variableValue>3</variableValue>
-        <scriptCode>
+<scriptCode>
 <![CDATA[
 import mytools
-mytools.hide_asset_def_toolbar()
+mytools.set_asset_def_toolbar_state(3)
 ]]>
-        </scriptCode>
+</scriptCode>
     </scriptRadioItem>
 </scriptMenuStripRadio>
     </subMenu>

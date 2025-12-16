@@ -201,7 +201,6 @@ def toggle_fullscreen():
     pane.showPaneTabs(not b)
     pane.setIsMaximized(b)
     hou.setPreference('showmenu.val', ['0', '1'][not b])
-    # toggle_shelf(0)
     toggle_stowbars(0)
 
 
@@ -253,9 +252,9 @@ def toggle_bars():
         if paneTab.type() == hou.paneTabType.Parm:
             current_val = get_asset_def_toolbar_state()
             if current_val == '0':
-                hide_asset_def_toolbar()
+                set_asset_def_toolbar_state("3")
             else:
-                show_asset_def_toolbar()
+                set_asset_def_toolbar_state("0")
 
         elif paneTab.type() == hou.paneTabType.NetworkEditor:
             current_val = paneTab.getPref('showmenu')
@@ -342,23 +341,13 @@ def init_asset_bar_menu_sync(force: bool = False):
     if force:
         sync_asset_bar_menu_global(force=True)
 
-def show_asset_def_toolbar():
-    hou.setPreference("parmdialog.asset_bar.val", "0")
-    sync_asset_bar_menu_global(force=True)
 
 
-def show_asset_def_toolbar_when_needed():
-    hou.setPreference("parmdialog.asset_bar.val", "1")
-    sync_asset_bar_menu_global(force=True)
-
-
-def show_asset_def_toolbar_current_def():
-    hou.setPreference("parmdialog.asset_bar.val", "2")
-    sync_asset_bar_menu_global(force=True)
-
-
-def hide_asset_def_toolbar():
-    hou.setPreference("parmdialog.asset_bar.val", "3")
+def set_asset_def_toolbar_state(state):
+    s = str(int(state)) if isinstance(state, (int, float)) else str(state).strip()
+    if s not in ("0", "1", "2", "3"):
+        raise ValueError("asset def toolbar state must be 0,1,2,3")
+    hou.setPreference("parmdialog.asset_bar.val", s)
     sync_asset_bar_menu_global(force=True)
 
 
