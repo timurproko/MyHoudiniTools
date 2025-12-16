@@ -4,6 +4,84 @@ _last_selected_node_path = None
 _asset_bar_sync_cb = None
 _asset_bar_sync_last = None
 
+# -----------------------------------------------------------------------------
+# Desktop cache (avoid expensive `hou.ui.desktops()` calls inside dynamic menus)
+# -----------------------------------------------------------------------------
+
+_DESKTOP_CACHE_SESSION_KEY = "_mytools_desktop_cache"
+
+
+def build_desktop_cache(force: bool = False):
+    """
+    Build (or return) a cached snapshot of available desktops.
+
+    Stored on `hou.session` to survive module reload patterns that can happen
+    in Houdini sessions.
+    """
+    try:
+        cache = getattr(hou.session, _DESKTOP_CACHE_SESSION_KEY, None)
+        if not force and isinstance(cache, dict) and cache.get("names"):
+            return cache
+
+        desktops = list(hou.ui.desktops()) if hasattr(hou, "ui") and hou.ui else []
+        names = [d.name() for d in desktops]
+        desk_map = {d.name(): d for d in desktops}
+
+        cache = {
+            "built_at": time.time(),
+            "names": names,
+            "map": desk_map,
+        }
+        setattr(hou.session, _DESKTOP_CACHE_SESSION_KEY, cache)
+        return cache
+    except Exception:
+        return {"built_at": time.time(), "names": [], "map": {}}
+
+
+def get_desktop_names_cached(force: bool = False):
+    return build_desktop_cache(force=force).get("names", [])
+
+
+def get_desktop_map_cached(force: bool = False):
+    return build_desktop_cache(force=force).get("map", {})
+
+
+def get_current_desktop_name():
+    try:
+        return hou.ui.curDesktop().name()
+    except Exception:
+        return ""
+
+
+def set_desktop_current(desktop_name: str) -> bool:
+    """
+    Set desktop by name using cached desktop objects when possible.
+    Returns True if a switch happened (or desktop already current).
+    """
+    try:
+        if not desktop_name:
+            return False
+
+        current = get_current_desktop_name()
+        if desktop_name == current:
+            return True
+
+        desk_map = get_desktop_map_cached(force=False)
+        desk = desk_map.get(desktop_name)
+
+        # Fallback: rebuild cache once if missing/stale
+        if desk is None:
+            desk_map = get_desktop_map_cached(force=True)
+            desk = desk_map.get(desktop_name)
+
+        if desk is None:
+            return False
+
+        desk.setAsCurrent()
+        return True
+    except Exception:
+        return False
+
 
 def encode_rgb(rgb):
     return ",".join(str(float(x)) for x in rgb[:3])

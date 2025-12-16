@@ -5,25 +5,26 @@
                 <insertAtIndex>0</insertAtIndex>
                 <contentsScriptCode>
 <![CDATA[
-import hou
-menu_items = [name for desktop in hou.ui.desktops() for name in (desktop.name(), desktop.name())]
+import mytools
+current = mytools.get_current_desktop_name()
+menu_items = []
+for name in mytools.get_desktop_names_cached():
+    # Visual "radio" indicator (filled for current desktop)
+    label = ("● " if name == current else "○ ") + name
+    menu_items += [name, label]
 return menu_items
 ]]>
                 </contentsScriptCode>
                 
                 <scriptCode>
 <![CDATA[
-import hou, mytools
+import mytools
 selected_desktop = kwargs["selectedtoken"]
-desktops_dict = {desktop.name(): desktop for desktop in hou.ui.desktops()}
-desktop_names = list(desktops_dict.keys())
-current_desktop = hou.ui.curDesktop()
-current_desktop_name = current_desktop.name()
-if selected_desktop in desktops_dict and selected_desktop != current_desktop_name:
-        desktops_dict[selected_desktop].setAsCurrent()
-        mytools.toggle_stowbars(1)
-        mytools.toggle_stowbars(0)
-        mytools.update_keymap()
+did_switch = mytools.set_desktop_current(selected_desktop)
+if did_switch:
+    mytools.toggle_stowbars(1)
+    mytools.toggle_stowbars(0)
+    mytools.update_keymap()
 ]]>
                 </scriptCode>
                 </scriptMenuStripDynamic>

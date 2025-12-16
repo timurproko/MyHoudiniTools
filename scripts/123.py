@@ -50,3 +50,9 @@ def setUVSettings():
     mytools.set_display_uv("$HOUDINI_USER_PREF_DIR/packages/MyTools/lookdev/UVChecker_Empty_4K.png", 1)
     mytools.set_display_matcap("$HOUDINI_USER_PREF_DIR/packages/MyTools/lookdev/matcaps/ceramic_lightbulb.exr")
 hdefereval.executeDeferred(setUVSettings)
+
+
+# Preload desktops once at startup to avoid lag when opening Desktop menu
+def _preload_desktop_cache():
+    mytools.build_desktop_cache(force=True)
+hdefereval.executeDeferred(_preload_desktop_cache)
