@@ -12,11 +12,7 @@ def updatekeymap():
 hdefereval.executeDeferred(updatekeymap)
 
 
-# Ensure asset definition toolbar state is initialized when file is loaded
+# Initialize Asset Definition Toolbar
 def initAssetDefinitionToolbar():
-    # Ensure preference exists, and force-sync the radio-menu global.
-    # HIP loads can reset Houdini globals, so we re-sync after file load.
-    mytools.get_asset_def_toolbar_state()
-    mytools.start_asset_bar_menu_sync()
-    mytools.sync_asset_bar_menu_global(force=True)
+    mytools.init_asset_bar_menu_sync(force=True)
 hdefereval.executeDeferred(initAssetDefinitionToolbar)

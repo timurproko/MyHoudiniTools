@@ -268,6 +268,7 @@ def toggle_bars():
             toggle_viewport_toolbars(paneTab)
 
 
+
 def toggle_toolbar(toolbar_name, state=-1):
     pane_tab = hou.ui.paneTabUnderCursor()
     if pane_tab and pane_tab.type() == hou.paneTabType.SceneViewer:
@@ -284,50 +285,21 @@ def toggle_toolbar(toolbar_name, state=-1):
 
 
 def get_asset_def_toolbar_state():
-    """
-    Get the current asset definition toolbar state directly from the Houdini API.
-    Reads from the global preference which is the source of truth for the toolbar state.
-    Returns the state as a string: '0', '1', '2', or '3'.
-    
-    States:
-    - '0' = Show Always
-    - '1' = Show When Needed  
-    - '2' = Show Current Definition
-    - '3' = Hide
-    """
-    # Read directly from the Houdini preference API
-    # This is the authoritative source for the asset definition toolbar state
     state = hou.getPreference('parmdialog.asset_bar.val')
     
-    # If preference doesn't exist, set default and return it
     if state is None or state == '':
-        state = '1'  # Default to 'Show When Needed'
+        state = '1'
         hou.setPreference('parmdialog.asset_bar.val', state)
     
-    # Return as string to ensure consistency
     return str(state).strip()
 
 
-def sync_asset_bar_menu_global(force: bool = False):
-    """
-    Houdini radio menus store state in a Houdini *global variable* (see SideFX docs:
-    `https://www.sidefx.com/docs/houdini/basics/config_menus.html`).
-    The real source of truth for the asset definition toolbar is the preference
-    `parmdialog.asset_bar.val`, but Houdini won't automatically keep our custom
-    menu global (`asset_bar_val`) in sync when the user changes the setting from
-    Houdini's native UI.
 
-    This function bridges that gap by syncing the required menu global:
-    - Read current state from `hou.getPreference('parmdialog.asset_bar.val')`
-    - Write to Houdini global `asset_bar_val` (via hscript)
-    - Call `varchange asset_bar_val` so the radio strip updates
-    """
+def sync_asset_bar_menu_global(force: bool = False):
     global _asset_bar_sync_last
 
     try:
         state = get_asset_def_toolbar_state()
-        # HIP file loads can reset Houdini globals without changing preferences.
-        # So also compare against the current global value, not only the last pref we saw.
         current_global = None
         try:
             out, _err = hou.hscript("echo $asset_bar_val")
@@ -338,7 +310,6 @@ def sync_asset_bar_menu_global(force: bool = False):
         if (not force) and (_asset_bar_sync_last == state) and (current_global == str(state)):
             return
 
-        # NOTE: Houdini "global variables" are only accessible via hscript.
         hou.hscript("set -g asset_bar_val = '" + str(state) + "'")
         hou.hscript("varchange asset_bar_val")
         _asset_bar_sync_last = state
@@ -346,16 +317,12 @@ def sync_asset_bar_menu_global(force: bool = False):
         pass
 
 
+
 def start_asset_bar_menu_sync():
-    """
-    Start a lightweight event-loop sync so the radio menu reflects changes made
-    from Houdini's native menus too. Safe to call multiple times.
-    """
     global _asset_bar_sync_cb
     if _asset_bar_sync_cb is not None:
         return
 
-    # Ensure correct immediately.
     sync_asset_bar_menu_global(force=True)
 
     def _cb():
@@ -367,26 +334,30 @@ def start_asset_bar_menu_sync():
     except Exception:
         _asset_bar_sync_cb = None
 
+
+
+def init_asset_bar_menu_sync(force: bool = False):
+    get_asset_def_toolbar_state()
+    start_asset_bar_menu_sync()
+    if force:
+        sync_asset_bar_menu_global(force=True)
+
 def show_asset_def_toolbar():
-    """Set asset definition toolbar to show always (state 0) via API only."""
     hou.setPreference("parmdialog.asset_bar.val", "0")
     sync_asset_bar_menu_global(force=True)
 
 
 def show_asset_def_toolbar_when_needed():
-    """Set asset definition toolbar to show when needed (state 1) via API only."""
     hou.setPreference("parmdialog.asset_bar.val", "1")
     sync_asset_bar_menu_global(force=True)
 
 
 def show_asset_def_toolbar_current_def():
-    """Set asset definition toolbar to show current definition (state 2) via API only."""
     hou.setPreference("parmdialog.asset_bar.val", "2")
     sync_asset_bar_menu_global(force=True)
 
 
 def hide_asset_def_toolbar():
-    """Hide asset definition toolbar (state 3) via API only."""
     hou.setPreference("parmdialog.asset_bar.val", "3")
     sync_asset_bar_menu_global(force=True)
 

@@ -24,15 +24,13 @@ hou.node('/obj').createNode('geo', 'geo').setSelected(True, True)
 # hou.appendSessionModuleSource('''hou.hscript("autosave on")''')
 
 
-# Initialize asset definition toolbar preference on startup (if needed)
+# Initialize Asset Definition Toolbar
 def initAssetDefinitionToolbar():
-    # Ensure preference exists and start syncing the menu radio global.
-    # Houdini's radio menu state is driven by a Houdini global variable, so we
-    # keep it synced to the preference in the background.
-    mytools.get_asset_def_toolbar_state()
-    mytools.start_asset_bar_menu_sync()
+    mytools.init_asset_bar_menu_sync(force=False)
 hdefereval.executeDeferred(initAssetDefinitionToolbar)
 
+
+# Hide UI Elements
 def hideShelf():
     hou.ui.curDesktop().shelfDock().show(0)
     hou.hscript("set -g shelf_tab_val = '0'")
