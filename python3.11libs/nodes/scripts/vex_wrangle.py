@@ -325,10 +325,8 @@ def _addSpareParmsToTabFolder(node, parmname, refs):
 
 
 def createSpareParmsFromChCalls(node, parmname):
-    """
-    For each ch() call in the given parm name, create a corresponding spare
-    parameter on the node. Parameters are placed in a tab folder at the bottom.
-    """
+    _find_and_select_first_tab(node)
+    
     parm = node.parm(parmname)
     original = parm.unexpandedString()
     simple = True
@@ -418,7 +416,6 @@ def createSpareParmsFromChCalls(node, parmname):
 
 
 def create_parms(node):
-    """Create spare parameters from ch() calls in the snippet parameter."""
     try:
         if node is None:
             return
@@ -426,5 +423,39 @@ def create_parms(node):
         if snippet_parm is None:
             return
         createSpareParmsFromChCalls(node, "snippet")
+    except Exception:
+        pass
+
+
+def _find_and_select_first_tab(node):
+    """Find the first tabs folder and select its first tab (index 0) for the given node."""
+    try:
+        if node is None:
+            return
+        
+        ptg = node.parmTemplateGroup()
+        if ptg is None:
+            return
+
+        def walk(folder):
+            for pt in folder.parmTemplates():
+                if isinstance(pt, hou.FolderParmTemplate) and pt.folderType() == hou.folderType.Tabs:
+                    name = pt.name()
+                    return name if name else None
+                if isinstance(pt, hou.FolderParmTemplate):
+                    r = walk(pt)
+                    if r:
+                        return r
+            return None
+
+        tabs_name = walk(ptg)
+        if not tabs_name:
+            return
+
+        pt = node.parmTuple(tabs_name)
+        if pt is None:
+            return
+
+        pt.set((0,))
     except Exception:
         pass
