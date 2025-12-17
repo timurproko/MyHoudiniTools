@@ -27,11 +27,9 @@ def _has_spare_parms(node: hou.Node) -> bool:
 def _vex_wrangle_action(node):
     if not _is_vex_wrangle(node):
         return False
-    if not _has_spare_parms(node):
-        return False
 
     from ..scripts import vex_wrangle
-    vex_wrangle.show_parms(node)
+    vex_wrangle.edit_code(node)
     return True
 
 
