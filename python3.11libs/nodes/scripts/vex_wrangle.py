@@ -459,3 +459,15 @@ def _find_and_select_first_tab(node):
         pt.set((0,))
     except Exception:
         pass
+
+
+
+def toggle_node_color(node, selected_color, alternate_color):
+    current_color = node.color().rgb()
+    default_color = (0.800000011920929, 0.800000011920929, 0.800000011920929)
+    if current_color == default_color:
+        node.setColor(hou.Color(selected_color))
+    elif current_color == selected_color:
+        node.setColor(hou.Color(alternate_color))
+    else:
+        node.setColor(hou.Color(default_color))
