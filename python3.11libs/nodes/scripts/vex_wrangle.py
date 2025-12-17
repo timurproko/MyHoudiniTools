@@ -192,7 +192,7 @@ def _addSpareParmsToTabFolder(node, parmname, refs):
                     foldername = entry.name()
                     break
     if not folder:
-        code_tab_name = None
+        first_tab_name = None
         entries = ptg.entries()
         for entry in entries:
             is_tab_folder = False
@@ -202,11 +202,8 @@ def _addSpareParmsToTabFolder(node, parmname, refs):
                 is_tab_folder = entry.folderType() == hou.folderType.Tabs
             
             if is_tab_folder:
-                label = entry.label() or ""
-                name = entry.name() or ""
-                if "code" in label.lower() or "code" in name.lower():
-                    code_tab_name = name
-                    break
+                first_tab_name = entry.name()
+                break
         
         if not folder:
             folder = hou.FolderParmTemplate(
@@ -216,8 +213,8 @@ def _addSpareParmsToTabFolder(node, parmname, refs):
             )
             folder.setTags({"sidefx::look": "blank"})
             
-            if code_tab_name:
-                ptg.insertAfter(code_tab_name, folder)
+            if first_tab_name:
+                ptg.insertBefore(first_tab_name, folder)
             else:
                 ptg.append(folder)
 
