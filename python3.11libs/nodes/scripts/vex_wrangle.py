@@ -28,13 +28,6 @@ def toggle_node_color_from_current(
     node.setColor(hou.Color(highlight_color))
 
 
-def show_parms(node):
-    current_value = node.parm("parm_mode").eval()
-    new_value = not current_value
-    node.parm("parm_mode").set(new_value)
-    toggle_node_color_from_current(node)
-
-
 def _extract_channel_names_from_code(node, parmname):
     """Extract all channel parameter names referenced in the code."""
     parm = node.parm(parmname)
@@ -60,16 +53,10 @@ def _extract_channel_names_from_code(node, parmname):
 
 
 def update_parms(node):
-    """Update spare parameters by removing only those that are not referenced in the code.
-    
-    Compares existing spare parameters against channel calls found in the snippet
-    parameter and removes only the ones that are not in the code.
-    """
     try:
         if node is None:
             return
         
-        # Extract channel names from code
         snippet_parm = node.parm("snippet")
         referenced_channel_names = set()
         if snippet_parm:
@@ -103,19 +90,16 @@ def update_parms(node):
         if not folder_templates:
             return
         
-        # Find spare parameters that are NOT in the code
         spare_to_remove = set()
         for template in folder_templates:
             parm = node.parm(template.name())
             if parm and parm.isSpare():
-                # Only remove if not referenced in code
                 if template.name() not in referenced_channel_names:
                     spare_to_remove.add(template.name())
         
         if not spare_to_remove:
             return
         
-        # Keep templates that are not spare or are referenced in code
         remaining_templates = []
         for template in folder_templates:
             if template.name() not in spare_to_remove:
@@ -132,70 +116,7 @@ def update_parms(node):
 
 
 def delete_parms(node):
-    """Remove all spare parameters and the Parameters tab folder using Houdini's built-in method."""
-    try:
-        if node is None:
-            return
-        
-        ptg = node.parmTemplateGroup()
-        if ptg is None:
-            return
-        
-        # Find the Parameters tab folder
-        parameters_folder = None
-        foldername = None
-        
-        foldername = 'folder_generatedparms'
-        parameters_folder = ptg.find(foldername)
-        
-        if not parameters_folder:
-            for entry in ptg.entries():
-                if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
-                    if entry.folderType() == hou.folderType.Tabs:
-                        label = (entry.label() or "").lower()
-                        if label == "parameters":
-                            parameters_folder = entry
-                            foldername = entry.name()
-                            break
-        
-        if not parameters_folder:
-            return
-        
-        # Get all spare parameters from the folder
-        folder_templates = list(parameters_folder.parmTemplates())
-        spare_param_names = []
-        
-        for template in folder_templates:
-            parm = node.parm(template.name())
-            if parm and parm.isSpare():
-                spare_param_names.append(template.name())
-        
-        # Remove all spare parameters using Houdini's built-in method
-        for name in spare_param_names:
-            try:
-                node.removeSpareParmTuple(name)
-            except Exception:
-                pass
-        
-        # Remove the folder if it exists and is now empty
-        ptg = node.parmTemplateGroup()
-        if ptg:
-            parameters_folder = ptg.find(foldername)
-            if not parameters_folder:
-                for entry in ptg.entries():
-                    if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
-                        if entry.folderType() == hou.folderType.Tabs:
-                            label = (entry.label() or "").lower()
-                            if label == "parameters":
-                                foldername = entry.name()
-                                break
-            
-            if foldername and ptg.find(foldername):
-                ptg.remove(foldername)
-                node.setParmTemplateGroup(ptg)
-                
-    except Exception as e:
-        pass
+    node.removeSpareParms()
 
 
 def edit_code(node):
