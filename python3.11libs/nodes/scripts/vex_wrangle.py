@@ -35,6 +35,89 @@ def show_parms(node):
     toggle_node_color_from_current(node)
 
 
+def delete_parms(node):
+    """Remove spare parameters from inside the Parameters tab folder.
+    
+    Custom solution that only removes templates from the folder without
+    checking if folder is empty and without calling Houdini's removeSpareParmTuple.
+    """
+    try:
+        if node is None:
+            return
+        
+        ptg = node.parmTemplateGroup()
+        if ptg is None:
+            return
+        
+        # Find the Parameters tab folder
+        parameters_folder = None
+        foldername = None
+        
+        # First try to find by the standard name
+        foldername = 'folder_generatedparms'
+        parameters_folder = ptg.find(foldername)
+        
+        # If not found, search for any tab folder with "Parameters" label
+        if not parameters_folder:
+            for entry in ptg.entries():
+                if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
+                    if entry.folderType() == hou.folderType.Tabs:
+                        label = (entry.label() or "").lower()
+                        if label == "parameters":
+                            parameters_folder = entry
+                            foldername = entry.name()
+                            break
+        
+        if not parameters_folder:
+            # No Parameters folder found, do nothing
+            return
+        
+        # Get all templates in the folder
+        folder_templates = list(parameters_folder.parmTemplates())
+        
+        # Check if folder is already empty
+        if not folder_templates:
+            # Folder is empty, remove the folder itself
+            ptg.remove(foldername)
+            node.setParmTemplateGroup(ptg)
+            return
+        
+        # Identify which templates are spare parameters
+        spare_template_names = set()
+        for template in folder_templates:
+            parm = node.parm(template.name())
+            if parm and parm.isSpare():
+                spare_template_names.add(template.name())
+        
+        if not spare_template_names:
+            # No spare parameters in folder, do nothing
+            return
+        
+        # Custom method: manually remove ONLY spare parameter templates from folder
+        # Keep all other templates (non-spare parameters)
+        remaining_templates = []
+        for template in folder_templates:
+            if template.name() not in spare_template_names:
+                remaining_templates.append(template)
+        
+        # Only remove spare parameters inside the folder
+        # Don't remove the folder itself - just update it with remaining templates
+        # (If folder becomes empty, it will be removed on the next call)
+        new_folder = parameters_folder.clone()
+        new_folder.setParmTemplates(remaining_templates)
+        ptg.replace(foldername, new_folder)
+        
+        # Apply the template group changes
+        # This removes the spare parameter templates from the folder
+        # The folder remains (even if empty) until next call
+        node.setParmTemplateGroup(ptg)
+                
+    except Exception as e:
+        # Debug: uncomment to see errors
+        # print(f"delete_parms error: {e}")
+        pass
+
+
 def edit_code(node):
     parm = node.parm("snippet")
     vscEmbed(parm, "Visual Studio Code")
