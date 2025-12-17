@@ -35,15 +35,45 @@ def show_parms(node):
     toggle_node_color_from_current(node)
 
 
-def delete_parms(node):
-    """Remove spare parameters from inside the Parameters tab folder.
+def _extract_channel_names_from_code(node, parmname):
+    """Extract all channel parameter names referenced in the code."""
+    parm = node.parm(parmname)
+    if not parm:
+        return set()
     
-    Custom solution that only removes templates from the folder without
-    checking if folder is empty and without calling Houdini's removeSpareParmTuple.
+    original = parm.unexpandedString()
+    if len(parm.keyframes()) > 0:
+        code = parm.evalAsString()
+    else:
+        code = original.strip()
+        if len(code) > 2 and code.startswith("`") and code.endswith("`"):
+            code = parm.evalAsString()
+    
+    code = _comment_or_string_exp.sub(_remove_comments, code)
+    
+    foundnames = set()
+    for match in _chcall_exp.finditer(code):
+        name = match.group(2)[1:-1]
+        foundnames.add(name)
+    
+    return foundnames
+
+
+def update_parms(node):
+    """Update spare parameters by removing only those that are not referenced in the code.
+    
+    Compares existing spare parameters against channel calls found in the snippet
+    parameter and removes only the ones that are not in the code.
     """
     try:
         if node is None:
             return
+        
+        # Extract channel names from code
+        snippet_parm = node.parm("snippet")
+        referenced_channel_names = set()
+        if snippet_parm:
+            referenced_channel_names = _extract_channel_names_from_code(node, "snippet")
         
         ptg = node.parmTemplateGroup()
         if ptg is None:
@@ -71,22 +101,24 @@ def delete_parms(node):
         folder_templates = list(parameters_folder.parmTemplates())
         
         if not folder_templates:
-            ptg.remove(foldername)
-            node.setParmTemplateGroup(ptg)
             return
         
-        spare_template_names = set()
+        # Find spare parameters that are NOT in the code
+        spare_to_remove = set()
         for template in folder_templates:
             parm = node.parm(template.name())
             if parm and parm.isSpare():
-                spare_template_names.add(template.name())
+                # Only remove if not referenced in code
+                if template.name() not in referenced_channel_names:
+                    spare_to_remove.add(template.name())
         
-        if not spare_template_names:
+        if not spare_to_remove:
             return
         
+        # Keep templates that are not spare or are referenced in code
         remaining_templates = []
         for template in folder_templates:
-            if template.name() not in spare_template_names:
+            if template.name() not in spare_to_remove:
                 remaining_templates.append(template)
         
         new_folder = parameters_folder.clone()
@@ -94,6 +126,73 @@ def delete_parms(node):
         ptg.replace(foldername, new_folder)
         
         node.setParmTemplateGroup(ptg)
+                
+    except Exception as e:
+        pass
+
+
+def delete_parms(node):
+    """Remove all spare parameters and the Parameters tab folder using Houdini's built-in method."""
+    try:
+        if node is None:
+            return
+        
+        ptg = node.parmTemplateGroup()
+        if ptg is None:
+            return
+        
+        # Find the Parameters tab folder
+        parameters_folder = None
+        foldername = None
+        
+        foldername = 'folder_generatedparms'
+        parameters_folder = ptg.find(foldername)
+        
+        if not parameters_folder:
+            for entry in ptg.entries():
+                if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
+                    if entry.folderType() == hou.folderType.Tabs:
+                        label = (entry.label() or "").lower()
+                        if label == "parameters":
+                            parameters_folder = entry
+                            foldername = entry.name()
+                            break
+        
+        if not parameters_folder:
+            return
+        
+        # Get all spare parameters from the folder
+        folder_templates = list(parameters_folder.parmTemplates())
+        spare_param_names = []
+        
+        for template in folder_templates:
+            parm = node.parm(template.name())
+            if parm and parm.isSpare():
+                spare_param_names.append(template.name())
+        
+        # Remove all spare parameters using Houdini's built-in method
+        for name in spare_param_names:
+            try:
+                node.removeSpareParmTuple(name)
+            except Exception:
+                pass
+        
+        # Remove the folder if it exists and is now empty
+        ptg = node.parmTemplateGroup()
+        if ptg:
+            parameters_folder = ptg.find(foldername)
+            if not parameters_folder:
+                for entry in ptg.entries():
+                    if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
+                        if entry.folderType() == hou.folderType.Tabs:
+                            label = (entry.label() or "").lower()
+                            if label == "parameters":
+                                foldername = entry.name()
+                                break
+            
+            if foldername and ptg.find(foldername):
+                ptg.remove(foldername)
+                node.setParmTemplateGroup(ptg)
                 
     except Exception as e:
         pass
