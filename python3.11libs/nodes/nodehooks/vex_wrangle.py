@@ -1,6 +1,8 @@
 import hou
 from .. import nodehook_utils as _utils
 
+_last_clicked_node = None
+
 
 def _is_vex_wrangle(node: hou.Node) -> bool:
     try:
@@ -25,10 +27,19 @@ def _has_spare_parms(node: hou.Node) -> bool:
 
 
 def _vex_wrangle_action(node):
+    global _last_clicked_node
+    
     if not _is_vex_wrangle(node):
         return False
 
-    # Check if VSC tab is currently active
+    is_same_node = _last_clicked_node is not None and _last_clicked_node.path() == node.path()
+    
+    if not is_same_node:
+        _last_clicked_node = node
+        from ..scripts import vex_wrangle
+        vex_wrangle.edit_code(node)
+        return True
+    
     desktop = hou.ui.curDesktop()
     vsc_tab_active = False
     for pane in desktop.panes():
@@ -41,13 +52,11 @@ def _vex_wrangle_action(node):
     from ..scripts import vex_wrangle
     
     if vsc_tab_active:
-        # VSC is active, open parameters tab instead
         node.setSelected(True, clear_all_selected=True)
         parm_pane = hou.ui.paneTabOfType(hou.paneTabType.Parm)
         if parm_pane:
             parm_pane.setIsCurrentTab()
     else:
-        # VSC is not active, open VSC as usual
         vex_wrangle.edit_code(node)
     
     return True
