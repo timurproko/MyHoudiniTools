@@ -686,6 +686,45 @@ def switch_to_pythonPane(pythonPaneType, showNetworkControls=1):
     if paneTab:
         paneTab = paneTab.setType(hou.paneTabType.PythonPanel)
         paneTab.setActiveInterface(hou.pypanel.interfaceByName(pythonPaneType))
+
+
+def select_parameter_tab(node, tab_index=0):
+    """Find the first tabs folder and select the specified tab index for the given node.
+    
+    Args:
+        node: The Houdini node whose parameter tabs to switch
+        tab_index: The index of the tab to select (default: 0 for first tab)
+    """
+    try:
+        if node is None:
+            return
+        
+        ptg = node.parmTemplateGroup()
+        if ptg is None:
+            return
+
+        def walk(folder):
+            for pt in folder.parmTemplates():
+                if isinstance(pt, hou.FolderParmTemplate) and pt.folderType() == hou.folderType.Tabs:
+                    name = pt.name()
+                    return name if name else None
+                if isinstance(pt, hou.FolderParmTemplate):
+                    r = walk(pt)
+                    if r:
+                        return r
+            return None
+
+        tabs_name = walk(ptg)
+        if not tabs_name:
+            return
+
+        pt = node.parmTuple(tabs_name)
+        if pt is None:
+            return
+
+        pt.set((tab_index,))
+    except Exception:
+        pass
         paneTab.showNetworkControls(showNetworkControls)
 
 

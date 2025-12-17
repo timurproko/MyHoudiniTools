@@ -5,29 +5,6 @@ from ..constants import vex_wrangle as _vex_consts
 import mytools
 
 
-def toggle_node_color_from_current(
-    node,
-    highlight_color=_vex_consts.SHOW_PARMS_COLOR,
-    userdata_key=_vex_consts.SHOW_PARMS_PREV_COLOR_USERDATA_KEY,
-):
-    if node is None:
-        return
-
-    prev = node.userData(userdata_key)
-    if prev:
-        try:
-            node.setColor(hou.Color(mytools.decode_rgb(prev)))
-        finally:
-            try:
-                node.destroyUserData(userdata_key)
-            except Exception:
-                node.setUserData(userdata_key, "")
-        return
-
-    node.setUserData(userdata_key, mytools.encode_rgb(node.color().rgb()))
-    node.setColor(hou.Color(highlight_color))
-
-
 def _extract_channel_names_from_code(node, parmname):
     """Extract all channel parameter names referenced in the code."""
     parm = node.parm(parmname)
@@ -325,7 +302,7 @@ def _addSpareParmsToTabFolder(node, parmname, refs):
 
 
 def createSpareParmsFromChCalls(node, parmname):
-    _find_and_select_first_tab(node)
+    mytools.select_parameter_tab(node, 0)
     
     parm = node.parm(parmname)
     original = parm.unexpandedString()
@@ -415,56 +392,16 @@ def createSpareParmsFromChCalls(node, parmname):
             parm.set(original)
 
 
-def create_parms(node):
-    try:
-        if node is None:
-            return
-        snippet_parm = node.parm("snippet")
-        if snippet_parm is None:
-            return
-        createSpareParmsFromChCalls(node, "snippet")
-    except Exception:
-        pass
-
-
-def _find_and_select_first_tab(node):
-    """Find the first tabs folder and select its first tab (index 0) for the given node."""
-    try:
-        if node is None:
-            return
-        
-        ptg = node.parmTemplateGroup()
-        if ptg is None:
-            return
-
-        def walk(folder):
-            for pt in folder.parmTemplates():
-                if isinstance(pt, hou.FolderParmTemplate) and pt.folderType() == hou.folderType.Tabs:
-                    name = pt.name()
-                    return name if name else None
-                if isinstance(pt, hou.FolderParmTemplate):
-                    r = walk(pt)
-                    if r:
-                        return r
-            return None
-
-        tabs_name = walk(ptg)
-        if not tabs_name:
-            return
-
-        pt = node.parmTuple(tabs_name)
-        if pt is None:
-            return
-
-        pt.set((0,))
-    except Exception:
-        pass
-
-
-
-def toggle_node_color(node, selected_color, alternate_color):
+def toggle_node_color(node):
+    """Toggle node color between default, selected, and alternate colors from constants."""
+    if node is None:
+        return
+    
     current_color = node.color().rgb()
-    default_color = (0.800000011920929, 0.800000011920929, 0.800000011920929)
+    default_color = _vex_consts.TOGGLE_NODE_DEFAULT_COLOR
+    selected_color = _vex_consts.TOGGLE_NODE_SELECTED_COLOR
+    alternate_color = _vex_consts.TOGGLE_NODE_ALTERNATE_COLOR
+    
     if current_color == default_color:
         node.setColor(hou.Color(selected_color))
     elif current_color == selected_color:
