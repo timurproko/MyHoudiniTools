@@ -52,11 +52,97 @@ def _extract_channel_names_from_code(node, parmname):
     return foundnames
 
 
+def _find_folders_recursive(entry, found_folders, target_names=None, target_labels=None):
+    """Recursively search for folders matching target names or labels."""
+    if target_names is None:
+        target_names = []
+    if target_labels is None:
+        target_labels = []
+    
+    if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
+        entry_name = entry.name()
+        entry_label = (entry.label() or "").lower()
+        
+        matches = False
+        if target_names:
+            for target_name in target_names:
+                if entry_name.startswith(target_name) or entry_name == target_name:
+                    matches = True
+                    break
+        if not matches and target_labels:
+            for target_label in target_labels:
+                if target_label in entry_label:
+                    matches = True
+                    break
+        
+        if matches:
+            found_folders.append(entry)
+        
+        for sub_entry in entry.parmTemplates():
+            _find_folders_recursive(sub_entry, found_folders, target_names, target_labels)
+
+
+def _update_folder_spare_parms_recursive(ptg, entry, referenced_channel_names, node, entry_path=None):
+    """Recursively update folders, modifying them in place if they need updates."""
+    updated = False
+    
+    if entry_path is None:
+        entry_path = []
+    
+    if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
+        folder_templates = list(entry.parmTemplates())
+        
+        updated_templates = []
+        for i, template in enumerate(folder_templates):
+            if isinstance(template, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
+                nested_updated, updated_template = _update_folder_spare_parms_recursive(
+                    ptg, template, referenced_channel_names, node, entry_path + [i])
+                if nested_updated:
+                    updated = True
+                    updated_templates.append(updated_template)
+                else:
+                    updated_templates.append(template)
+            else:
+                updated_templates.append(template)
+        
+        spare_to_remove = set()
+        for template in updated_templates:
+            if not isinstance(template, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
+                parm = node.parm(template.name())
+                if parm and parm.isSpare():
+                    if template.name() not in referenced_channel_names:
+                        spare_to_remove.add(template.name())
+        
+        if spare_to_remove:
+            final_templates = []
+            for template in updated_templates:
+                if template.name() not in spare_to_remove:
+                    final_templates.append(template)
+            
+            new_folder = entry.clone()
+            new_folder.setParmTemplates(final_templates)
+            updated = True
+            return updated, new_folder
+        
+            new_folder = entry.clone()
+            new_folder.setParmTemplates(updated_templates)
+            return updated, new_folder
+    
+    return updated, entry
+
+
 def update_parms(node):
+    """Update spare parameters by removing only those that are not referenced in the code.
+    
+    Works with both the custom folder_generatedparms folder (including nested ones like
+    folder_generatedparms_snippet) and any Parameters tab folders that Houdini may create.
+    Updates all matching folders found, including nested folders.
+    """
     try:
         if node is None:
             return
         
+        # Extract channel names from code
         snippet_parm = node.parm("snippet")
         referenced_channel_names = set()
         if snippet_parm:
@@ -66,50 +152,40 @@ def update_parms(node):
         if ptg is None:
             return
         
-        parameters_folder = None
-        foldername = None
+        found_folders = []
+        target_names = ['folder_generatedparms']
+        target_labels = ['parameters', 'generated channel parameters']
         
-        foldername = 'folder_generatedparms'
-        parameters_folder = ptg.find(foldername)
+        for entry in ptg.entries():
+            _find_folders_recursive(entry, found_folders, target_names, target_labels)
         
-        if not parameters_folder:
-            for entry in ptg.entries():
-                if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
-                    if entry.folderType() == hou.folderType.Tabs:
-                        label = (entry.label() or "").lower()
-                        if label == "parameters":
-                            parameters_folder = entry
-                            foldername = entry.name()
-                            break
-        
-        if not parameters_folder:
+        if not found_folders:
             return
         
-        folder_templates = list(parameters_folder.parmTemplates())
+        updated = False
+        updated_entries = []
         
-        if not folder_templates:
-            return
+        for entry in ptg.entries():
+            if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
+                was_updated, updated_entry = _update_folder_spare_parms_recursive(
+                    ptg, entry, referenced_channel_names, node)
+                if was_updated:
+                    updated = True
+                    updated_entries.append((entry.name(), updated_entry))
+                else:
+                    updated_entries.append((entry.name(), entry))
+            else:
+                updated_entries.append((entry.name(), entry))
         
-        spare_to_remove = set()
-        for template in folder_templates:
-            parm = node.parm(template.name())
-            if parm and parm.isSpare():
-                if template.name() not in referenced_channel_names:
-                    spare_to_remove.add(template.name())
-        
-        if not spare_to_remove:
-            return
-        
-        remaining_templates = []
-        for template in folder_templates:
-            if template.name() not in spare_to_remove:
-                remaining_templates.append(template)
-        
-        new_folder = parameters_folder.clone()
-        new_folder.setParmTemplates(remaining_templates)
-        ptg.replace(foldername, new_folder)
-        
-        node.setParmTemplateGroup(ptg)
+        if updated:
+            for entry_name, updated_entry in updated_entries:
+                try:
+                    ptg.replace(entry_name, updated_entry)
+                except Exception:
+                    indices = ptg.findIndices(updated_entry)
+                    if indices:
+                        ptg.replaceWithIndices(indices, updated_entry)
+            node.setParmTemplateGroup(ptg)
                 
     except Exception as e:
         pass
