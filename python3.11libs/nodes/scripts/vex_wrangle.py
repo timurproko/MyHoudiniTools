@@ -49,15 +49,12 @@ def delete_parms(node):
         if ptg is None:
             return
         
-        # Find the Parameters tab folder
         parameters_folder = None
         foldername = None
         
-        # First try to find by the standard name
         foldername = 'folder_generatedparms'
         parameters_folder = ptg.find(foldername)
         
-        # If not found, search for any tab folder with "Parameters" label
         if not parameters_folder:
             for entry in ptg.entries():
                 if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
@@ -69,20 +66,15 @@ def delete_parms(node):
                             break
         
         if not parameters_folder:
-            # No Parameters folder found, do nothing
             return
         
-        # Get all templates in the folder
         folder_templates = list(parameters_folder.parmTemplates())
         
-        # Check if folder is already empty
         if not folder_templates:
-            # Folder is empty, remove the folder itself
             ptg.remove(foldername)
             node.setParmTemplateGroup(ptg)
             return
         
-        # Identify which templates are spare parameters
         spare_template_names = set()
         for template in folder_templates:
             parm = node.parm(template.name())
@@ -90,31 +82,20 @@ def delete_parms(node):
                 spare_template_names.add(template.name())
         
         if not spare_template_names:
-            # No spare parameters in folder, do nothing
             return
         
-        # Custom method: manually remove ONLY spare parameter templates from folder
-        # Keep all other templates (non-spare parameters)
         remaining_templates = []
         for template in folder_templates:
             if template.name() not in spare_template_names:
                 remaining_templates.append(template)
         
-        # Only remove spare parameters inside the folder
-        # Don't remove the folder itself - just update it with remaining templates
-        # (If folder becomes empty, it will be removed on the next call)
         new_folder = parameters_folder.clone()
         new_folder.setParmTemplates(remaining_templates)
         ptg.replace(foldername, new_folder)
         
-        # Apply the template group changes
-        # This removes the spare parameter templates from the folder
-        # The folder remains (even if empty) until next call
         node.setParmTemplateGroup(ptg)
                 
     except Exception as e:
-        # Debug: uncomment to see errors
-        # print(f"delete_parms error: {e}")
         pass
 
 
@@ -155,11 +136,6 @@ def vscEmbed(parm, ide):
         tab.setActiveInterface(hou.pypanel.interfaces()["vscEmbed"])
 
 
-# ===================== HOUDINI SOURCE CODE  =====================
-# Extracted and modified from vexpressionmenu.py
-# Creates spare parameters in a regular tab folder at the bottom
-
-# Strings representing channel calls
 _chcalls = [
     'ch', 'chf', 'chi', 'chu', 'chv', 'chp', 'ch2', 'ch3', 'ch4',
     'vector(chramp', 'chramp',
@@ -168,7 +144,6 @@ _chcalls = [
     'chdict', 'chsop'
 ]
 
-# Expression for finding ch calls
 _chcall_exp = re.compile(f"""
 \\b  # Start at word boundary
 ({"|".join(re.escape(chcall) for chcall in _chcalls)})  # Match any call string
@@ -177,14 +152,10 @@ _chcall_exp = re.compile(f"""
 \\s*[),]  # Optional white space and closing bracket or comma marking end of first argument
 """, re.VERBOSE)
 
-# Number of components corresponding to different ch calls. If a call string is
-# not in this dict, it's assumed to have a single component.
 _ch_size = {
     'chu': 2, 'chv': 3, 'chp': 4, 'ch2': 4, 'ch3': 9, 'ch4': 16,
 }
 
-# This expression matches comments (single and multiline) and also strings
-# (though it will miss strings with escaped quote characters).
 _comment_or_string_exp = re.compile(
     r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
     re.DOTALL | re.MULTILINE
@@ -207,16 +178,13 @@ def _addSpareParmsToTabFolder(node, parmname, refs):
     the Code tab if it doesn't exist.
     """
     if not refs:
-        return  # No-op
+        return
 
     ptg = node.parmTemplateGroup()
-    # Use a single shared tab for all generated parameters
     foldername = 'folder_generatedparms'
     
-    # Check if folder already exists (by name or by label)
     folder = ptg.find(foldername)
     if not folder:
-        # Try to find an existing tab with label "Parameters" to reuse
         for entry in ptg.entries():
             if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
                 if entry.folderType() == hou.folderType.Tabs and (entry.label() or "").lower() == "parameters":
@@ -224,11 +192,9 @@ def _addSpareParmsToTabFolder(node, parmname, refs):
                     foldername = entry.name()
                     break
     if not folder:
-        # Find the Code tab to insert after it
         code_tab_name = None
         entries = ptg.entries()
         for entry in entries:
-            # Look for tab folders (both FolderParmTemplate and FolderSetParmTemplate)
             is_tab_folder = False
             if isinstance(entry, hou.FolderParmTemplate):
                 is_tab_folder = entry.folderType() == hou.folderType.Tabs
@@ -236,14 +202,12 @@ def _addSpareParmsToTabFolder(node, parmname, refs):
                 is_tab_folder = entry.folderType() == hou.folderType.Tabs
             
             if is_tab_folder:
-                # Check if this is the Code tab by looking at its label or name
                 label = entry.label() or ""
                 name = entry.name() or ""
                 if "code" in label.lower() or "code" in name.lower():
                     code_tab_name = name
                     break
         
-        # Create new tab folder if we didn't find an existing one
         if not folder:
             folder = hou.FolderParmTemplate(
                 foldername,
@@ -252,14 +216,11 @@ def _addSpareParmsToTabFolder(node, parmname, refs):
             )
             folder.setTags({"sidefx::look": "blank"})
             
-            # Insert after Code tab if found, otherwise append at the end
             if code_tab_name:
                 ptg.insertAfter(code_tab_name, folder)
             else:
-                # Fallback: append at the bottom if Code tab not found
                 ptg.append(folder)
 
-    # Insert/replace the parameter templates
     indices = ptg.findIndices(folder)
     for name, template in refs:
         exparm = node.parm(name) or node.parmTuple(name)
@@ -279,22 +240,15 @@ def createSpareParmsFromChCalls(node, parmname):
     original = parm.unexpandedString()
     simple = True
     if len(parm.keyframes()) > 0:
-        # The parm has an expression/keyframes, evaluate it to the get its
-        # current value
         code = parm.evalAsString()
         simple = False
     else:
         code = original.strip()
         if len(code) > 2 and code.startswith("`") and code.endswith("`"):
-            # The whole string is in backticks, evaluate it
             code = parm.evalAsString()
             simple = False
-    # Remove comments
     code = _comment_or_string_exp.sub(_remove_comments, code)
 
-    # Loop over the channel refs found in the VEX, work out the corresponding
-    # template type, remember for later (we might need to check first if the
-    # user wants to replace existing parms).
     refs = []
     existing = []
     foundnames = set()
@@ -302,9 +256,6 @@ def createSpareParmsFromChCalls(node, parmname):
         call = match.group(1)
         name = match.group(2)[1:-1]
 
-        # If the same parm shows up more than once, only track the first
-        # case.  This avoids us double-adding since we delay actual
-        # creation of parms until we've run over everything.
         if name in foundnames:
             continue
         foundnames.add(name)
@@ -313,10 +264,8 @@ def createSpareParmsFromChCalls(node, parmname):
         label = name.title().replace("_", " ")
 
         if call in ("vector(chramp", "vector(chrampderiv"):
-            # Result was cast to a vector, assume it's a color
             template = hou.RampParmTemplate(name, label, hou.rampParmType.Color)
         elif call in ("chramp", "chrampderiv"):
-            # No explicit cast, assume it's a float
             template = hou.RampParmTemplate(name, label, hou.rampParmType.Float)
         elif call == "chs":
             template = hou.StringParmTemplate(name, label, size)
@@ -336,7 +285,6 @@ def createSpareParmsFromChCalls(node, parmname):
         exparm = node.parm(name) or node.parmTuple(name)
         if exparm:
             if not exparm.isSpare():
-                # The existing parameter isn't a spare, so just skip it
                 continue
             extemplate = exparm.parmTemplate()
             etype = extemplate.type()
@@ -347,18 +295,12 @@ def createSpareParmsFromChCalls(node, parmname):
                 (ttype == hou.parmTemplateType.String and
                  extemplate.stringType() != template.stringType())
             ):
-                # The template type is different, remember the name and template
-                # type to replace later
                 existing.append((name, template))
             else:
-                # No difference in template type, we can skip this
                 continue
         else:
-            # Remember the parameter name and template type to insert later
             refs.append((name, template))
 
-    # If there are existing parms with the same names but different template
-    # types, ask the user if they want to replace them
     if existing:
         exnames = ", ".join(f'"{name}"' for name, _ in existing)
         if len(existing) > 1:
@@ -370,19 +312,15 @@ def createSpareParmsFromChCalls(node, parmname):
             title="Replace Existing Parameters?",
             suppress=hou.confirmType.DeleteSpareParameters,
         )
-        if result == 0:  # Replace
+        if result == 0:
             refs.extend(existing)
-        elif result == 2:  # Cancel
+        elif result == 2:
             return
 
     _addSpareParmsToTabFolder(node, parmname, refs)
 
     if refs:
         if simple:
-            # Re-write the contents of the snippet so the node will re-run the
-            # VEX and discover the new parameters.
-            # (This is really a workaround for a bug (#123616), since Houdini
-            # should ideally know to update VEX snippets automatically).
             parm.set(original)
 
 
@@ -397,7 +335,3 @@ def create_parms(node):
         createSpareParmsFromChCalls(node, "snippet")
     except Exception:
         pass
-
-
-# ===================== HOUDINI SOURCE CODE  =====================
-

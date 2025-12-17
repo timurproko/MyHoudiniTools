@@ -28,8 +28,28 @@ def _vex_wrangle_action(node):
     if not _is_vex_wrangle(node):
         return False
 
+    # Check if VSC tab is currently active
+    desktop = hou.ui.curDesktop()
+    vsc_tab_active = False
+    for pane in desktop.panes():
+        current_tab = pane.currentTab()
+        if current_tab and current_tab.type() == hou.paneTabType.PythonPanel:
+            if current_tab.name() == "Visual Studio Code":
+                vsc_tab_active = True
+                break
+    
     from ..scripts import vex_wrangle
-    vex_wrangle.edit_code(node)
+    
+    if vsc_tab_active:
+        # VSC is active, open parameters tab instead
+        node.setSelected(True, clear_all_selected=True)
+        parm_pane = hou.ui.paneTabOfType(hou.paneTabType.Parm)
+        if parm_pane:
+            parm_pane.setIsCurrentTab()
+    else:
+        # VSC is not active, open VSC as usual
+        vex_wrangle.edit_code(node)
+    
     return True
 
 
