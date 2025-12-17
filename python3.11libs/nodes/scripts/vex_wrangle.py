@@ -73,125 +73,234 @@ def vscEmbed(parm, ide):
 
 
 # ===================== HOUDINI SOURCE CODE  =====================
-# Snippet from Markus Jarderot via StackOverflow
-# This will miss some edge cases but generally
-# avoid picking up commented out ch references.
-def createSpareParmsFromChCalls(node, parmname):
-    """ For each ch() call in the given parm name create
-        a corresponding spare parameter on the node.
-    """
-    issimple = True
-    parm = node.parm(parmname)
-    if len(parm.keyframes()) > 0:
-        # we have a keyframe, so expression.
-        # we will want to follow it.
-        issimple = False
-        code = parm.evalAsString()
+# Extracted and modified from vexpressionmenu.py
+# Creates spare parameters in a regular tab folder at the bottom
+
+# Strings representing channel calls
+_chcalls = [
+    'ch', 'chf', 'chi', 'chu', 'chv', 'chp', 'ch2', 'ch3', 'ch4',
+    'vector(chramp', 'chramp',
+    'vector(chrampderiv', 'chrampderiv',
+    'chs',
+    'chdict', 'chsop'
+]
+
+# Expression for finding ch calls
+_chcall_exp = re.compile(f"""
+\\b  # Start at word boundary
+({"|".join(re.escape(chcall) for chcall in _chcalls)})  # Match any call string
+\\s*[(]\\s*  # Opening bracket, ignore any surrounding whitespace
+('\\w+'|"\\w+")  # Single or double quoted string
+\\s*[),]  # Optional white space and closing bracket or comma marking end of first argument
+""", re.VERBOSE)
+
+# Number of components corresponding to different ch calls. If a call string is
+# not in this dict, it's assumed to have a single component.
+_ch_size = {
+    'chu': 2, 'chv': 3, 'chp': 4, 'ch2': 4, 'ch3': 9, 'ch4': 16,
+}
+
+# This expression matches comments (single and multiline) and also strings
+# (though it will miss strings with escaped quote characters).
+_comment_or_string_exp = re.compile(
+    r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
+    re.DOTALL | re.MULTILINE
+)
+
+
+def _remove_comments(match):
+    """Substitution function replaces comments with spaces and leaves strings alone."""
+    s = match.group(0)
+    if s.startswith('/'):
+        return ' '
     else:
-        # No keyframes.  Attempt an unexpanded update to avoid
-        # triggering excessive replacement.
-        code = node.parm(parmname).unexpandedString()
-        # Check if the code is itself a backtick chref, as often
-        # created by paste references. We want to follow these.
-        stripcode = code.strip()
-        if len(stripcode) >= 2:
-            # is this entirely a backtick expression?
-            if stripcode[0] == "`" and stripcode[-1] == "`":
-                issimple = False
-                code = parm.evalAsString()
+        return s
 
-    # Strip out comments.  We only want
-    # active ch() calls.
-    code = mytools.remove_c_like_comments(code)
 
-    # Now find all ch() patterns.
-    chcalls = [
-        "ch",
-        "chf",
-        "chi",
-        "chu",
-        "chv",
-        "chp",
-        "ch2",
-        "ch3",
-        "ch4",
-        r"vector\(chramp",
-        "chramp",
-        r"vector\(chrampderiv",
-        "chrampderiv",
-        "chs",
-        "chdict",
-        "chsop",
-    ]
+def _addSpareParmsToTabFolder(node, parmname, refs):
+    """
+    Takes a list of (name, template) in refs and injects them into a
+    tab folder for generated parms. Creates the folder as a tab right after
+    the Code tab if it doesn't exist.
+    """
+    if not refs:
+        return  # No-op
 
-    ch_to_size = {
-        "ch": 1,
-        "chf": 1,
-        "chi": 1,
-        "chu": 2,
-        "chv": 3,
-        "chp": 4,
-        "ch2": 4,
-        "ch3": 9,
-        "ch4": 16,
-        r"vector\(chramp": 1,
-        "chramp": 1,
-        r"vector\(chrampderiv": 1,
-        "chrampderiv": 1,
-        "chs": 1,
-        "chsop": 1,
-        "chdict": 1,
-    }
+    ptg = node.parmTemplateGroup()
+    # Use a single shared tab for all generated parameters
+    foldername = 'folder_generatedparms'
+    
+    # Check if folder already exists (by name or by label)
+    folder = ptg.find(foldername)
+    if not folder:
+        # Try to find an existing tab with label "Parameters" to reuse
+        for entry in ptg.entries():
+            if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
+                if entry.folderType() == hou.folderType.Tabs and (entry.label() or "").lower() == "parameters":
+                    folder = entry
+                    foldername = entry.name()
+                    break
+    if not folder:
+        # Find the Code tab to insert after it
+        code_tab_name = None
+        entries = ptg.entries()
+        for entry in entries:
+            # Look for tab folders (both FolderParmTemplate and FolderSetParmTemplate)
+            is_tab_folder = False
+            if isinstance(entry, hou.FolderParmTemplate):
+                is_tab_folder = entry.folderType() == hou.folderType.Tabs
+            elif isinstance(entry, hou.FolderSetParmTemplate):
+                is_tab_folder = entry.folderType() == hou.folderType.Tabs
+            
+            if is_tab_folder:
+                # Check if this is the Code tab by looking at its label or name
+                label = entry.label() or ""
+                name = entry.name() or ""
+                if "code" in label.lower() or "code" in name.lower():
+                    code_tab_name = name
+                    break
+        
+        # Create new tab folder if we didn't find an existing one
+        if not folder:
+            folder = hou.FolderParmTemplate(
+                foldername,
+                "Parameters",
+                folder_type=hou.folderType.Tabs,
+            )
+            folder.setTags({"sidefx::look": "blank"})
+            
+            # Insert after Code tab if found, otherwise append at the end
+            if code_tab_name:
+                ptg.insertAfter(code_tab_name, folder)
+            else:
+                # Fallback: append at the bottom if Code tab not found
+                ptg.append(folder)
 
-    chmatches = []
-    for chcall in chcalls:
-        # We wish to match ch("foo"); ch("foo", 3.2); ch('foo')
-        # We do not want to match ch("../foo"); ch("foo" + "bar");
-        matches = re.findall(r"\b" + chcall + r" *\( *\"(\w+)\" *[\),]", code)
-        matches += re.findall(r"\b" + chcall + r" *\( *'(\w+)' *[\),]", code)
-        chmatches.append(matches)
+    # Insert/replace the parameter templates
+    indices = ptg.findIndices(folder)
+    for name, template in refs:
+        exparm = node.parm(name) or node.parmTuple(name)
+        if exparm:
+            ptg.replace(name, template)
+        else:
+            ptg.appendToFolder(indices, template)
+    node.setParmTemplateGroup(ptg)
 
-        # Check if we have this parameter already.
-        for match in matches:
-            if (node.parm(match) is None) and (node.parmTuple(match) is None):
-                # No match, add the parameter.
-                template = None
-                tuplesize = ch_to_size[chcall]
-                label = match.title().replace("_", " ")
-                if chcall == r"vector\(chramp" or chcall == r"vector\(chrampderiv":
-                    template = hou.RampParmTemplate(match, label, hou.rampParmType.Color)
-                elif chcall == "chramp" or chcall == "chrampderiv":
-                    # No explicit cast, guess float.
-                    template = hou.RampParmTemplate(match, label, hou.rampParmType.Float)
-                elif chcall == "chs":
-                    template = hou.StringParmTemplate(match, label, tuplesize)
-                elif chcall == "chsop":
-                    template = hou.StringParmTemplate(
-                        match,
-                        label,
-                        tuplesize,
-                        string_type=hou.stringParmType.NodeReference,
-                    )
-                elif chcall == "chi":
-                    template = hou.IntParmTemplate(match, label, tuplesize)
-                elif chcall == "chdict":
-                    template = hou.DataParmTemplate(
-                        match,
-                        label,
-                        tuplesize,
-                        data_parm_type=hou.dataParmType.KeyValueDictionary,
-                    )
-                else:
-                    # Range is less meaningfull for tuples, so set it nicely for scalars.
-                    template = hou.FloatParmTemplate(match, label, tuplesize, min=0, max=1)
-                node.addSpareParmTuple(template)
 
-    # If we are not simple we can't write back as it will chase the
-    # parameter and do something unexpected.  So we just cowardly don't
-    # update.
-    if issimple:
-        code = node.parm(parmname).unexpandedString()
-        node.parm(parmname).set(code)
+def createSpareParmsFromChCalls(node, parmname):
+    """
+    For each ch() call in the given parm name, create a corresponding spare
+    parameter on the node. Parameters are placed in a tab folder at the bottom.
+    """
+    parm = node.parm(parmname)
+    original = parm.unexpandedString()
+    simple = True
+    if len(parm.keyframes()) > 0:
+        # The parm has an expression/keyframes, evaluate it to the get its
+        # current value
+        code = parm.evalAsString()
+        simple = False
+    else:
+        code = original.strip()
+        if len(code) > 2 and code.startswith("`") and code.endswith("`"):
+            # The whole string is in backticks, evaluate it
+            code = parm.evalAsString()
+            simple = False
+    # Remove comments
+    code = _comment_or_string_exp.sub(_remove_comments, code)
+
+    # Loop over the channel refs found in the VEX, work out the corresponding
+    # template type, remember for later (we might need to check first if the
+    # user wants to replace existing parms).
+    refs = []
+    existing = []
+    foundnames = set()
+    for match in _chcall_exp.finditer(code):
+        call = match.group(1)
+        name = match.group(2)[1:-1]
+
+        # If the same parm shows up more than once, only track the first
+        # case.  This avoids us double-adding since we delay actual
+        # creation of parms until we've run over everything.
+        if name in foundnames:
+            continue
+        foundnames.add(name)
+        
+        size = _ch_size.get(call, 1)
+        label = name.title().replace("_", " ")
+
+        if call in ("vector(chramp", "vector(chrampderiv"):
+            # Result was cast to a vector, assume it's a color
+            template = hou.RampParmTemplate(name, label, hou.rampParmType.Color)
+        elif call in ("chramp", "chrampderiv"):
+            # No explicit cast, assume it's a float
+            template = hou.RampParmTemplate(name, label, hou.rampParmType.Float)
+        elif call == "chs":
+            template = hou.StringParmTemplate(name, label, size)
+        elif call == "chsop":
+            template = hou.StringParmTemplate(
+                name, label, size, string_type=hou.stringParmType.NodeReference)
+        elif call == "chi":
+            template = hou.IntParmTemplate(name, label, size)
+        elif call == "chdict":
+            template = hou.DataParmTemplate(
+                name, label, size,
+                data_parm_type=hou.dataParmType.KeyValueDictionary
+            )
+        else:
+            template = hou.FloatParmTemplate(name, label, size, min=0, max=1)
+
+        exparm = node.parm(name) or node.parmTuple(name)
+        if exparm:
+            if not exparm.isSpare():
+                # The existing parameter isn't a spare, so just skip it
+                continue
+            extemplate = exparm.parmTemplate()
+            etype = extemplate.type()
+            ttype = template.type()
+            if (
+                etype != ttype or
+                extemplate.numComponents() != template.numComponents() or
+                (ttype == hou.parmTemplateType.String and
+                 extemplate.stringType() != template.stringType())
+            ):
+                # The template type is different, remember the name and template
+                # type to replace later
+                existing.append((name, template))
+            else:
+                # No difference in template type, we can skip this
+                continue
+        else:
+            # Remember the parameter name and template type to insert later
+            refs.append((name, template))
+
+    # If there are existing parms with the same names but different template
+    # types, ask the user if they want to replace them
+    if existing:
+        exnames = ", ".join(f'"{name}"' for name, _ in existing)
+        if len(existing) > 1:
+            msg = f"Parameters {exnames} already exist, replace them?"
+        else:
+            msg = f"Parameter {exnames} already exists, replace it?"
+        result = hou.ui.displayCustomConfirmation(
+            msg, ("Replace", "Skip Existing", "Cancel"), close_choice=2,
+            title="Replace Existing Parameters?",
+            suppress=hou.confirmType.DeleteSpareParameters,
+        )
+        if result == 0:  # Replace
+            refs.extend(existing)
+        elif result == 2:  # Cancel
+            return
+
+    _addSpareParmsToTabFolder(node, parmname, refs)
+
+    if refs:
+        if simple:
+            # Re-write the contents of the snippet so the node will re-run the
+            # VEX and discover the new parameters.
+            # (This is really a workaround for a bug (#123616), since Houdini
+            # should ideally know to update VEX snippets automatically).
+            parm.set(original)
 
 
 def create_parms(node):
