@@ -11,7 +11,7 @@ _DESKTOP_CACHE_KEY = "_mytools_desktop_cache"
 _AXIOM_SOP_TYPE = hou.nodeType(hou.sopNodeTypeCategory(), "axiom_solver::3.2")
 _BOUNDING_BOX_SHADING_PAIR = (hou.glShadingType.WireBoundingBox, hou.glShadingType.ShadedBoundingBox)
 _SHADING_MODE_PAIRS = [
-    (hou.glShadingType.WireGhost, hou.glShadingType.Wire),
+    (hou.glShadingType.Wire, hou.glShadingType.WireGhost),
     (hou.glShadingType.HiddenLineInvisible, hou.glShadingType.HiddenLineGhost),
     (hou.glShadingType.Flat, hou.glShadingType.FlatWire),
     (hou.glShadingType.Smooth, hou.glShadingType.SmoothWire),
@@ -70,6 +70,36 @@ def decode_rgb(s):
     if len(parts) < 3:
         raise ValueError("Invalid rgb string")
     return (float(parts[0]), float(parts[1]), float(parts[2]))
+
+
+def find_folders_recursive(entry, found_folders, target_names=None, target_labels=None):
+    """Recursively search for folders matching target names or labels."""
+    if target_names is None:
+        target_names = []
+    if target_labels is None:
+        target_labels = []
+    
+    if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
+        entry_name = entry.name()
+        entry_label = (entry.label() or "").lower()
+        
+        matches = False
+        if target_names:
+            for target_name in target_names:
+                if entry_name.startswith(target_name) or entry_name == target_name:
+                    matches = True
+                    break
+        if not matches and target_labels:
+            for target_label in target_labels:
+                if target_label in entry_label:
+                    matches = True
+                    break
+        
+        if matches:
+            found_folders.append(entry)
+        
+        for sub_entry in entry.parmTemplates():
+            find_folders_recursive(sub_entry, found_folders, target_names, target_labels)
 
 
 def remove_c_like_comments(text):

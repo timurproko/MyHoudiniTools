@@ -6,7 +6,6 @@ import mytools
 
 
 def _extract_channel_names_from_code(node, parmname):
-    """Extract all channel parameter names referenced in the code."""
     parm = node.parm(parmname)
     if not parm:
         return set()
@@ -29,43 +28,9 @@ def _extract_channel_names_from_code(node, parmname):
     return foundnames
 
 
-def _find_folders_recursive(entry, found_folders, target_names=None, target_labels=None):
-    """Recursively search for folders matching target names or labels."""
-    if target_names is None:
-        target_names = []
-    if target_labels is None:
-        target_labels = []
-    
-    if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
-        entry_name = entry.name()
-        entry_label = (entry.label() or "").lower()
-        
-        matches = False
-        if target_names:
-            for target_name in target_names:
-                if entry_name.startswith(target_name) or entry_name == target_name:
-                    matches = True
-                    break
-        if not matches and target_labels:
-            for target_label in target_labels:
-                if target_label in entry_label:
-                    matches = True
-                    break
-        
-        if matches:
-            found_folders.append(entry)
-        
-        for sub_entry in entry.parmTemplates():
-            _find_folders_recursive(sub_entry, found_folders, target_names, target_labels)
 
 
 def _update_folder_spare_parms_recursive(ptg, entry, referenced_channel_names, node, target_names=None, target_labels=None, entry_path=None):
-    """Recursively update folders, modifying them in place if they need updates.
-    
-    Works with both the custom folder_generatedparms folder (including nested ones like
-    folder_generatedparms_snippet) and any Parameters tab folders that Houdini may create.
-    Returns (updated, entry, should_remove) where should_remove indicates if folder is empty and should be removed.
-    """
     updated = False
     should_remove = False
     
@@ -80,7 +45,6 @@ def _update_folder_spare_parms_recursive(ptg, entry, referenced_channel_names, n
         entry_name = entry.name()
         entry_label = (entry.label() or "").lower()
         
-        # Check if this folder matches the target pattern
         matches_pattern = False
         if target_names:
             for target_name in target_names:
@@ -98,19 +62,15 @@ def _update_folder_spare_parms_recursive(ptg, entry, referenced_channel_names, n
         updated_templates = []
         for i, template in enumerate(folder_templates):
             if isinstance(template, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
-                # Recursively process nested folders
                 nested_updated, updated_template, nested_should_remove = _update_folder_spare_parms_recursive(
                     ptg, template, referenced_channel_names, node, target_names, target_labels, entry_path + [i])
                 if nested_updated:
                     updated = True
-                # If nested folder should be removed (empty), don't add it to updated_templates
                 if not nested_should_remove:
                     updated_templates.append(updated_template)
-                # If nested folder is removed, we've already updated the parent
             else:
                 updated_templates.append(template)
         
-        # Only process spare parameters if this folder matches the pattern
         if matches_pattern:
             spare_to_remove = set()
             for template in updated_templates:
@@ -126,7 +86,6 @@ def _update_folder_spare_parms_recursive(ptg, entry, referenced_channel_names, n
                     if template.name() not in spare_to_remove:
                         final_templates.append(template)
                 
-                # Check if folder is now empty after removing spare parameters
                 if len(final_templates) == 0:
                     should_remove = True
                     updated = True
@@ -137,9 +96,7 @@ def _update_folder_spare_parms_recursive(ptg, entry, referenced_channel_names, n
                 updated = True
                 return updated, new_folder, should_remove
         
-        # If folder was updated (nested folders changed) but no spare params removed here
         if updated:
-            # Check if folder is now empty after nested folder removal
             if len(updated_templates) == 0 and matches_pattern:
                 should_remove = True
                 return updated, entry, should_remove
@@ -152,17 +109,10 @@ def _update_folder_spare_parms_recursive(ptg, entry, referenced_channel_names, n
 
 
 def update_parms(node):
-    """Update spare parameters by removing only those that are not referenced in the code.
-    
-    Works with both the custom folder_generatedparms folder (including nested ones like
-    folder_generatedparms_snippet) and any Parameters tab folders that Houdini may create.
-    Updates all matching folders found, including nested folders.
-    """
     try:
         if node is None:
             return
         
-        # Extract channel names from code
         snippet_parm = node.parm("snippet")
         referenced_channel_names = set()
         if snippet_parm:
@@ -177,7 +127,7 @@ def update_parms(node):
         target_labels = ['parameters', 'generated channel parameters']
         
         for entry in ptg.entries():
-            _find_folders_recursive(entry, found_folders, target_names, target_labels)
+            mytools.find_folders_recursive(entry, found_folders, target_names, target_labels)
         
         if not found_folders:
             return
@@ -193,7 +143,6 @@ def update_parms(node):
                 if was_updated:
                     updated = True
                     if should_remove:
-                        # Mark folder for removal if it's empty
                         entries_to_remove.add(entry.name())
                     else:
                         updated_entries.append((entry.name(), updated_entry))
@@ -203,7 +152,6 @@ def update_parms(node):
                 updated_entries.append((entry.name(), entry))
         
         if updated:
-            # First, replace updated entries
             for entry_name, updated_entry in updated_entries:
                 try:
                     ptg.replace(entry_name, updated_entry)
@@ -212,12 +160,10 @@ def update_parms(node):
                     if indices:
                         ptg.replaceWithIndices(indices, updated_entry)
             
-            # Then, remove empty folders
             for entry_name in entries_to_remove:
                 try:
                     ptg.remove(entry_name)
                 except Exception:
-                    # Try to find and remove by indices if name-based removal fails
                     try:
                         folder = ptg.find(entry_name)
                         if folder:
@@ -301,7 +247,6 @@ _comment_or_string_exp = re.compile(
 
 
 def _remove_comments(match):
-    """Substitution function replaces comments with spaces and leaves strings alone."""
     s = match.group(0)
     if s.startswith('/'):
         return ' '
@@ -310,11 +255,6 @@ def _remove_comments(match):
 
 
 def _addSpareParmsToTabFolder(node, parmname, refs):
-    """
-    Takes a list of (name, template) in refs and injects them into a
-    tab folder for generated parms. Creates the folder as a tab right after
-    the Code tab if it doesn't exist.
-    """
     if not refs:
         return
 
@@ -458,7 +398,6 @@ def createSpareParmsFromChCalls(node, parmname):
 
 
 def toggle_node_color(node):
-    """Toggle node color between default, selected, and alternate colors from constants."""
     if node is None:
         return
     
