@@ -62,6 +62,7 @@ SelectedPillTextColor:	        @PillTextColor          # menu pill text color (s
 SelectedPillOutlineColor:       @PillOutlineColor       # menu pill outline (selected viewport)
 SelectedPillBGColor:	        @PillBGColor            # menu pill background (selected vp)
 SelectedPillBGAlpha:	        ALPHA 0.65	            # menu pill background alpha (selected)
+PointColor:		                0.00 0.00 1.00  	    # non-selected points and point info
 
 
 
@@ -92,7 +93,6 @@ ZaxesColor:		                0.00 0.00 1.00	        # sticky z axis
 SelectedAxesColor:	            1.00 0.50 0.50	        # selected coordinate axes
 PrimInfoColor:		            0.50 0.05 0.30	        # prim-vtx, prim-num, prim-normal
 SelectedPrimInfoColor:	        0.90 0.60 0.30	        # sel'd prim-vtx, prim-num, prim-normal
-PointColor:		                0.00 0.00 1.00  	    # non-selected points and point info
 
 Guide1Color:		            0.40 0.40 1.00	        # 1st guide geometry
 Guide2Color:		            0.20 0.50 0.80	        # 2nd guide geometry
