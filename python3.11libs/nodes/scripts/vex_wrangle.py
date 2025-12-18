@@ -186,6 +186,36 @@ def delete_parms(node):
     node.removeSpareParms()
 
 
+def on_deleted(node):
+    """Called when a vex_wrangle node is being deleted."""
+    try:
+        if node is None:
+            return
+        
+        parm = node.parm("snippet")
+        if parm is None:
+            return
+        
+        from HoudiniExprEditor import ParmWatcher
+        try:
+            reload(ParmWatcher)
+        except NameError:
+            from importlib import reload
+            reload(ParmWatcher)
+        
+        import os
+        file_path = ParmWatcher.get_file_name(parm, type_="parm")
+        if ParmWatcher.remove_file_from_watcher(file_path):
+            ParmWatcher.clean_files()
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+
 def edit_code(node):
     parm = node.parm("snippet")
     vscEmbed(parm, "Visual Studio Code")
