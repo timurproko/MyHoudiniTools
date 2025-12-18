@@ -64,8 +64,10 @@ def _update_folder_spare_parms_recursive(ptg, entry, referenced_channel_names, n
     
     Works with both the custom folder_generatedparms folder (including nested ones like
     folder_generatedparms_snippet) and any Parameters tab folders that Houdini may create.
+    Returns (updated, entry, should_remove) where should_remove indicates if folder is empty and should be removed.
     """
     updated = False
+    should_remove = False
     
     if entry_path is None:
         entry_path = []
@@ -97,13 +99,14 @@ def _update_folder_spare_parms_recursive(ptg, entry, referenced_channel_names, n
         for i, template in enumerate(folder_templates):
             if isinstance(template, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
                 # Recursively process nested folders
-                nested_updated, updated_template = _update_folder_spare_parms_recursive(
+                nested_updated, updated_template, nested_should_remove = _update_folder_spare_parms_recursive(
                     ptg, template, referenced_channel_names, node, target_names, target_labels, entry_path + [i])
                 if nested_updated:
                     updated = True
+                # If nested folder should be removed (empty), don't add it to updated_templates
+                if not nested_should_remove:
                     updated_templates.append(updated_template)
-                else:
-                    updated_templates.append(template)
+                # If nested folder is removed, we've already updated the parent
             else:
                 updated_templates.append(template)
         
@@ -123,18 +126,29 @@ def _update_folder_spare_parms_recursive(ptg, entry, referenced_channel_names, n
                     if template.name() not in spare_to_remove:
                         final_templates.append(template)
                 
+                # Check if folder is now empty after removing spare parameters
+                if len(final_templates) == 0:
+                    should_remove = True
+                    updated = True
+                    return updated, entry, should_remove
+                
                 new_folder = entry.clone()
                 new_folder.setParmTemplates(final_templates)
                 updated = True
-                return updated, new_folder
+                return updated, new_folder, should_remove
         
         # If folder was updated (nested folders changed) but no spare params removed here
         if updated:
+            # Check if folder is now empty after nested folder removal
+            if len(updated_templates) == 0 and matches_pattern:
+                should_remove = True
+                return updated, entry, should_remove
+            
             new_folder = entry.clone()
             new_folder.setParmTemplates(updated_templates)
-            return updated, new_folder
+            return updated, new_folder, should_remove
     
-    return updated, entry
+    return updated, entry, should_remove
 
 
 def update_parms(node):
@@ -170,20 +184,26 @@ def update_parms(node):
         
         updated = False
         updated_entries = []
+        entries_to_remove = set()
         
         for entry in ptg.entries():
             if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
-                was_updated, updated_entry = _update_folder_spare_parms_recursive(
+                was_updated, updated_entry, should_remove = _update_folder_spare_parms_recursive(
                     ptg, entry, referenced_channel_names, node, target_names, target_labels)
                 if was_updated:
                     updated = True
-                    updated_entries.append((entry.name(), updated_entry))
+                    if should_remove:
+                        # Mark folder for removal if it's empty
+                        entries_to_remove.add(entry.name())
+                    else:
+                        updated_entries.append((entry.name(), updated_entry))
                 else:
                     updated_entries.append((entry.name(), entry))
             else:
                 updated_entries.append((entry.name(), entry))
         
         if updated:
+            # First, replace updated entries
             for entry_name, updated_entry in updated_entries:
                 try:
                     ptg.replace(entry_name, updated_entry)
@@ -191,6 +211,22 @@ def update_parms(node):
                     indices = ptg.findIndices(updated_entry)
                     if indices:
                         ptg.replaceWithIndices(indices, updated_entry)
+            
+            # Then, remove empty folders
+            for entry_name in entries_to_remove:
+                try:
+                    ptg.remove(entry_name)
+                except Exception:
+                    # Try to find and remove by indices if name-based removal fails
+                    try:
+                        folder = ptg.find(entry_name)
+                        if folder:
+                            indices = ptg.findIndices(folder)
+                            if indices:
+                                ptg.removeWithIndices(indices)
+                    except Exception:
+                        pass
+            
             node.setParmTemplateGroup(ptg)
                 
     except Exception as e:
