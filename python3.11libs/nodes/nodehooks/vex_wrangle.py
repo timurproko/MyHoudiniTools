@@ -32,7 +32,9 @@ def _vex_wrangle_action(node):
     if not _is_vex_wrangle(node):
         return False
 
-    node.setSelected(True, clear_all_selected=True)
+    if not node.isSelected():
+        return False
+
     _last_clicked_node = node
     
     from ..scripts import vex_wrangle
@@ -63,7 +65,6 @@ def _vex_wrangle_action(node):
             parm_tab.setIsCurrentTab()
     else:
         vsc_tab.setIsCurrentTab()
-        vex_wrangle.edit_code(node)
     
     return True
 
