@@ -1228,3 +1228,31 @@ def convert_hda_to_subnet():
         print(f"Error converting HDA to subnet: {str(e)}")
         if subnet:
             subnet.destroy()
+
+
+def is_panel_active(panel_name):
+    """Check if a panel with the given name is currently active in any pane."""
+    try:
+        desktop = hou.ui.curDesktop()
+        for pane in desktop.panes():
+            current_tab = pane.currentTab()
+            if current_tab and current_tab.type() == hou.paneTabType.PythonPanel:
+                if current_tab.name() == panel_name:
+                    return True
+        return False
+    except Exception:
+        return False
+
+
+def is_node_type(node, node_type_name, category_name=None):
+    """Check if a node matches the given type name."""
+    try:
+        if not node or not isinstance(node, hou.Node):
+            return False
+        if category_name and node.type().category().name() != category_name:
+            return False
+        tname = (node.type().name() or "").lower()
+        node_type_lower = node_type_name.lower()
+        return tname == node_type_lower or tname.startswith(node_type_lower + "::")
+    except Exception:
+        return False

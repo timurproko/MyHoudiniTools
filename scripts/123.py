@@ -58,3 +58,13 @@ if PRELOAD_DESKTOP_CACHE:
     def precacheDesktops():
         mytools.build_desktop_cache()
     hdefereval.executeDeferred(precacheDesktops)
+
+
+# Parameters Panel Auto-switch
+def registerVSCSelectionCallback():
+    try:
+        from nodes.scripts import vex_wrangle
+        vex_wrangle.register()
+    except Exception:
+        pass
+hdefereval.executeDeferred(registerVSCSelectionCallback)

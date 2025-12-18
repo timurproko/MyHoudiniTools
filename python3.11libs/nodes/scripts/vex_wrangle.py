@@ -4,6 +4,9 @@ import time
 from ..constants import vex_wrangle as _vex_consts
 import mytools
 
+_selection_callback_id = None
+_last_selected_node_path = None
+
 
 def _extract_channel_names_from_code(node, parmname):
     parm = node.parm(parmname)
@@ -412,3 +415,52 @@ def toggle_node_color(node):
         node.setColor(hou.Color(alternate_color))
     else:
         node.setColor(hou.Color(default_color))
+
+
+def _on_node_selection_changed():
+    global _last_selected_node_path
+    
+    try:
+        if not mytools.is_panel_active("Visual Studio Code"):
+            _last_selected_node_path = None
+            return
+        
+        selected_nodes = hou.selectedNodes()
+        if not selected_nodes:
+            _last_selected_node_path = None
+            return
+        
+        selected_node = selected_nodes[0]
+        current_node_path = selected_node.path()
+        
+        if current_node_path == _last_selected_node_path:
+            return
+        
+        _last_selected_node_path = current_node_path
+        
+        if not mytools.is_node_type(selected_node, "vex_wrangle", "Sop"):
+            parm_pane = hou.ui.paneTabOfType(hou.paneTabType.Parm)
+            if parm_pane:
+                parm_pane.setIsCurrentTab()
+    except Exception:
+        pass
+
+
+def register():
+    global _selection_callback_id
+    
+    if _selection_callback_id is not None:
+        return
+    
+    try:
+        try:
+            from PySide6 import QtCore
+        except ImportError:
+            from PySide2 import QtCore
+        
+        timer = QtCore.QTimer()
+        timer.timeout.connect(_on_node_selection_changed)
+        timer.start(100)
+        _selection_callback_id = timer
+    except Exception:
+        _selection_callback_id = None

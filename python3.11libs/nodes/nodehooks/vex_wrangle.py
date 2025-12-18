@@ -32,6 +32,8 @@ def _vex_wrangle_action(node):
     if not _is_vex_wrangle(node):
         return False
 
+    node.setSelected(True, clear_all_selected=True)
+
     is_same_node = _last_clicked_node is not None and _last_clicked_node.path() == node.path()
     
     if not is_same_node:
@@ -52,7 +54,6 @@ def _vex_wrangle_action(node):
     from ..scripts import vex_wrangle
     
     if vsc_tab_active:
-        node.setSelected(True, clear_all_selected=True)
         parm_pane = hou.ui.paneTabOfType(hou.paneTabType.Parm)
         if parm_pane:
             parm_pane.setIsCurrentTab()
