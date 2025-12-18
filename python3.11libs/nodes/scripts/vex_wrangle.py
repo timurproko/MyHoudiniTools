@@ -442,6 +442,8 @@ def _on_node_selection_changed():
             parm_pane = hou.ui.paneTabOfType(hou.paneTabType.Parm)
             if parm_pane:
                 parm_pane.setIsCurrentTab()
+        else:
+            edit_code(selected_node)
     except Exception:
         pass
 
