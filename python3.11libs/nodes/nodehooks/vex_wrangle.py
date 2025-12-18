@@ -33,31 +33,36 @@ def _vex_wrangle_action(node):
         return False
 
     node.setSelected(True, clear_all_selected=True)
-
-    is_same_node = _last_clicked_node is not None and _last_clicked_node.path() == node.path()
-    
-    if not is_same_node:
-        _last_clicked_node = node
-        from ..scripts import vex_wrangle
-        vex_wrangle.edit_code(node)
-        return True
-    
-    desktop = hou.ui.curDesktop()
-    vsc_tab_active = False
-    for pane in desktop.panes():
-        current_tab = pane.currentTab()
-        if current_tab and current_tab.type() == hou.paneTabType.PythonPanel:
-            if current_tab.name() == "Visual Studio Code":
-                vsc_tab_active = True
-                break
+    _last_clicked_node = node
     
     from ..scripts import vex_wrangle
     
-    if vsc_tab_active:
-        parm_pane = hou.ui.paneTabOfType(hou.paneTabType.Parm)
-        if parm_pane:
-            parm_pane.setIsCurrentTab()
+    desktop = hou.ui.curDesktop()
+    
+    vsc_tab = None
+    for pane_tab in desktop.paneTabs():
+        if pane_tab.type() == hou.paneTabType.PythonPanel and pane_tab.name() == "Visual Studio Code":
+            vsc_tab = pane_tab
+            break
+    
+    if vsc_tab is None:
+        vex_wrangle.edit_code(node)
+        return True
+    
+    parm_tab = hou.ui.paneTabOfType(hou.paneTabType.Parm)
+    
+    vsc_active = False
+    for pane in desktop.panes():
+        current_tab = pane.currentTab()
+        if current_tab == vsc_tab:
+            vsc_active = True
+            break
+    
+    if vsc_active:
+        if parm_tab:
+            parm_tab.setIsCurrentTab()
     else:
+        vsc_tab.setIsCurrentTab()
         vex_wrangle.edit_code(node)
     
     return True
