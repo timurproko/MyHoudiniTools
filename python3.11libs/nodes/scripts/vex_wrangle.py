@@ -191,11 +191,9 @@ def on_deleted(node):
     import os
     from importlib import reload
     
-    # Early validation
     if node is None:
         return
     
-    # Try to get parm - node might be partially deleted, so wrap in try/except
     try:
         parm = node.parm("snippet")
     except (AttributeError, RuntimeError):
@@ -204,77 +202,62 @@ def on_deleted(node):
     if parm is None:
         return
     
-    # Import ParmWatcher with proper error handling
     try:
-        from HoudiniExprEditor import ParmWatcher
-        # Reload to ensure we have the latest version
+        import parms_watcher
         try:
-            reload(ParmWatcher)
+            reload(parms_watcher)
         except (NameError, TypeError):
             from importlib import reload as reload_module
-            reload_module(ParmWatcher)
+            reload_module(parms_watcher)
     except (ImportError, AttributeError) as e:
-        # ParmWatcher module not available - can't proceed
         return
     
-    # Get file path with error handling
     file_path = None
     try:
-        file_path = ParmWatcher.get_file_name(parm, type_="parm")
+        file_path = parms_watcher.get_file_name(parm, type_="parm")
     except (AttributeError, TypeError, ValueError) as e:
-        # get_file_name failed - try to remove from watcher anyway using parm
         file_path = None
     
-    # Always try to remove from watcher, even if we don't have file_path
     watcher_removed = False
     if file_path:
         try:
-            watcher_removed = ParmWatcher.remove_file_from_watcher(file_path)
+            watcher_removed = parms_watcher.remove_file_from_watcher(file_path)
         except (AttributeError, TypeError, ValueError):
             watcher_removed = False
     
-    # If file_path method failed, try alternative approach
     if not file_path or not watcher_removed:
         try:
-            # Try to remove using parm directly if ParmWatcher supports it
-            if hasattr(ParmWatcher, 'remove_parm_from_watcher'):
-                ParmWatcher.remove_parm_from_watcher(parm)
+            if hasattr(parms_watcher, 'remove_parm_from_watcher'):
+                parms_watcher.remove_parm_from_watcher(parm)
                 watcher_removed = True
         except (AttributeError, TypeError, ValueError):
             pass
     
-    # Clean files after removing from watcher
     if watcher_removed:
         try:
-            ParmWatcher.clean_files()
+            parms_watcher.clean_files()
         except (AttributeError, TypeError):
             pass
     
-    # Remove file with retry logic
     if file_path and os.path.exists(file_path):
         max_retries = 5
-        retry_delay = 0.1  # 100ms
+        retry_delay = 0.1
         
         for attempt in range(max_retries):
             try:
-                # Check if file still exists before attempting removal
                 if not os.path.exists(file_path):
                     break
                 
-                # Try to remove the file
                 os.remove(file_path)
                 
-                # Verify removal was successful
                 if not os.path.exists(file_path):
                     break
                     
             except (OSError, PermissionError, FileNotFoundError) as e:
-                # File might be locked or already deleted
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
-                    retry_delay *= 2  # Exponential backoff
+                    retry_delay *= 2
                 else:
-                    # Last attempt failed - try one more time after a longer delay
                     try:
                         time.sleep(0.5)
                         if os.path.exists(file_path):
@@ -282,7 +265,6 @@ def on_deleted(node):
                     except (OSError, PermissionError, FileNotFoundError):
                         pass
             except Exception:
-                # Unexpected error - don't retry
                 break
 
 
@@ -292,15 +274,15 @@ def edit_code(node):
 
 
 def vscEmbed(parm, ide):
-    from HoudiniExprEditor import ParmWatcher
+    import parms_watcher
 
     try:
-        reload(ParmWatcher)
+        reload(parms_watcher)
     except NameError:
         from importlib import reload
 
-        reload(ParmWatcher)
-    ParmWatcher.add_watcher(parm)
+        reload(parms_watcher)
+    parms_watcher.add_watcher(parm)
 
     desktop = hou.ui.curDesktop()
     existing_vsc_tab = None
