@@ -32,18 +32,17 @@ def _vex_wrangle_action(node):
     if not _is_vex_wrangle(node):
         return False
 
-    if not node.isSelected():
-        return False
-
     _last_clicked_node = node
     
     from ..scripts import vex_wrangle
+    from ..constants import vex_wrangle as _vex_consts
     
     desktop = hou.ui.curDesktop()
     
     vsc_tab = None
+    ide_name = _vex_consts.IDE_NAME
     for pane_tab in desktop.paneTabs():
-        if pane_tab.type() == hou.paneTabType.PythonPanel and pane_tab.name() == "Visual Studio Code":
+        if pane_tab.type() == hou.paneTabType.PythonPanel and pane_tab.name() == ide_name:
             vsc_tab = pane_tab
             break
     

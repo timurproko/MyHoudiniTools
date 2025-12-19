@@ -489,11 +489,7 @@ def _on_node_selection_changed():
         
         _last_selected_node_path = current_node_path
         
-        if not mytools.is_node_type(selected_node, "vex_wrangle", "Sop"):
-            parm_pane = hou.ui.paneTabOfType(hou.paneTabType.Parm)
-            if parm_pane:
-                parm_pane.setIsCurrentTab()
-        else:
+        if mytools.is_node_type(selected_node, "vex_wrangle", "Sop"):
             edit_code(selected_node)
     except Exception:
         pass
