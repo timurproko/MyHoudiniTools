@@ -140,6 +140,14 @@ except:
                 </context>
                 <scriptCode>
                     <![CDATA[
+try:
+    parm = kwargs["parms"][0]
+    node = parm.node()
+    if node:
+        node.setSelected(False)
+except:
+    pass
+
 from nodes.scripts import vex_wrangle
 from nodes.constants import vex_wrangle as _vex_consts
 vex_wrangle.vscEmbed(kwargs["parms"][0], _vex_consts.IDE_NAME)

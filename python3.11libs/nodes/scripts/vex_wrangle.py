@@ -201,7 +201,6 @@ def on_deleted(node):
     if parm is None:
         return
     
-    # Use the unified watcher cleanup - it handles everything
     try:
         import parms_watcher
         parms_watcher.remove_parm_from_watcher(parm, type_="parm")
@@ -215,35 +214,64 @@ def edit_code(node):
 
 
 def vscEmbed(parm, ide):
+    """Open parameter in external editor and embed in Houdini panel.
+    Works for both VEX wrangle nodes and regular parameters.
+    """
     import parms_watcher
+    import hdefereval
 
     try:
         reload(parms_watcher)
     except NameError:
         from importlib import reload
-
         reload(parms_watcher)
+    
     parms_watcher.add_watcher(parm)
 
-    desktop = hou.ui.curDesktop()
-    existing_vsc_tab = None
-    for pane in desktop.paneTabs():
-        if pane.type() == hou.paneTabType.PythonPanel and pane.name() == ide:
-            existing_vsc_tab = pane
-            break
+    def _create_embedded_panel():
+        try:
+            desktop = hou.ui.curDesktop()
+            existing_vsc_tab = None
+            for pane in desktop.paneTabs():
+                if pane.type() == hou.paneTabType.PythonPanel and pane.name() == ide:
+                    existing_vsc_tab = pane
+                    break
 
-    if existing_vsc_tab:
-        existing_vsc_tab.setIsCurrentTab()
-    else:
-        tab = desktop.paneTabOfType(hou.paneTabType.Parm)
-        pane = tab.pane()
-        tab.setShowNetworkControls(False)
-        pane.setShowPaneTabs(True)
-        tab = pane.createTab(hou.paneTabType.PythonPanel)
-        tab.setName(ide)
-        tab.showToolbar(False)
-        time.sleep(0.25)
-        tab.setActiveInterface(hou.pypanel.interfaces()["vscEmbed"])
+            if existing_vsc_tab:
+                existing_vsc_tab.setIsCurrentTab()
+            else:
+                tab = desktop.paneTabOfType(hou.paneTabType.Parm)
+                if tab is None:
+                    tab = desktop.paneTabOfType(hou.paneTabType.NetworkEditor)
+                if tab is None:
+                    return
+                
+                pane = tab.pane()
+                tab.setShowNetworkControls(False)
+                pane.setShowPaneTabs(True)
+                new_tab = pane.createTab(hou.paneTabType.PythonPanel)
+                new_tab.setName(ide)
+                new_tab.showToolbar(False)
+                
+                def _set_interface():
+                    try:
+                        time.sleep(0.25)
+                        interfaces = hou.pypanel.interfaces()
+                        if "vscEmbed" in interfaces:
+                            new_tab.setActiveInterface(interfaces["vscEmbed"])
+                        else:
+                            for name, interface in interfaces.items():
+                                if hasattr(interface, 'label') and interface.label() == ide:
+                                    new_tab.setActiveInterface(interfaces[name])
+                                    break
+                    except Exception as e:
+                        print(f"vscEmbed error setting interface: {e}")
+                
+                hdefereval.executeDeferred(_set_interface)
+        except Exception as e:
+            print(f"vscEmbed error: {e}")
+    
+    hdefereval.executeDeferred(_create_embedded_panel)
 
 
 _chcalls = [
