@@ -891,5 +891,120 @@ mytools.openFile("/packages/MyTools/MainMenuCommon.xml")
                                 </menuStripRadio>
                         </subMenu>
                 </subMenu>
+                <subMenu id="edit_menu">
+                        <subMenu id="hpaste_menu">
+                                <label>HPaste</label>
+                                <insertAfter>h.paste</insertAfter>
+                                <scriptItem id="hpaste_copy">
+                                        <label>Copy</label>
+                                        <scriptCode>
+                                                <![CDATA[
+try:
+    from PySide6.QtWidgets import QApplication
+except:
+    from PySide2.QtWidgets import QApplication
+
+import hpaste
+
+def do():
+    try:
+        nodes=hou.selectedItems()
+    except:
+        nodes=hou.selectedNodes()
+    if len(nodes) == 0:
+        hou.ui.displayMessage("No nodes are selected!",severity=hou.severityType.Error)
+        return
+    try:
+        s=hpaste.nodesToString(nodes)
+    except RuntimeError as e:
+        hou.ui.displayMessage("Error: %s"%str(e),severity=hou.severityType.Error)
+        return
+    except RuntimeWarning as e:
+        hou.ui.displayMessage("Warning: %s"%str(e),severity=hou.severityType.Warning)
+    except Exception as e:
+        hou.ui.displayMessage("Internal Error: %s"%str(e),severity=hou.severityType.Error)
+        return
+
+    if hou.applicationVersion()[0] > 15:
+        hou.ui.copyTextToClipboard(s)
+    else:
+        qapp = QApplication.instance()
+        qapp.clipboard().setText(s)
+    
+do()
+]]>
+                                        </scriptCode>
+                                </scriptItem>
+                                <scriptItem id="hpaste_paste">
+                                        <label>Paste</label>
+                                        <scriptCode>
+                                                <![CDATA[
+try:
+    from PySide6.QtWidgets import QApplication
+except:
+    from PySide2.QtWidgets import QApplication
+
+import hpaste
+import hpaste.hpasteoptions as opt
+
+def do(pane):
+    if hou.applicationVersion()[0] > 15:
+        s = hou.ui.getTextFromClipboard()
+    else:
+        qapp = QApplication.instance()
+        s = qapp.clipboard().text()
+
+    geonode = None
+    for _ in range(2):
+        try:
+            hpaste.stringToNodes(s, ne=pane, hou_parent=geonode)
+        except hpaste.InvalidContextError as e:
+            nec, snc = e.contexts()
+            if snc == 'Sop' and nec == 'Object':
+                if hou.ui.displayMessage("Error: %s" % str(e), severity=hou.severityType.Warning, buttons=('Create geo node', 'Cancel'), default_choice=0, close_choice=1) == 0:
+                    if geonode is not None:
+                        raise RuntimeError('are we in an infinite loop?')
+                    geonode = e.node().createNode('geo')
+                    if pane is not None:
+                        geonode.setPosition(pane.cursorPosition())
+                    pane = None
+                    continue
+            else:
+                hou.ui.displayMessage("Error: %s"%str(e),severity=hou.severityType.Error)
+                return
+        except RuntimeError as e:
+            hou.ui.displayMessage("Error: %s"%str(e),severity=hou.severityType.Error)
+            return
+        except RuntimeWarning as e:
+            hou.ui.displayMessage("Warning: %s"%str(e),severity=hou.severityType.Warning)
+        except Exception as e:
+            hou.ui.displayMessage("Internal Error: %s"%str(e),severity=hou.severityType.Error)
+            return
+        break
+
+do(None)
+]]>
+                                        </scriptCode>
+                                </scriptItem>
+                                <scriptItem id="hpaste_webcopy">
+                                        <label>Copy Web</label>
+                                        <scriptCode>
+                                                <![CDATA[
+from hpaste.hpasteshelffunctions import hcopyweb
+hcopyweb()
+]]>
+                                        </scriptCode>
+                                </scriptItem>
+                                <scriptItem id="hpaste_webpaste">
+                                        <label>Paste Web</label>
+                                        <scriptCode>
+                                                <![CDATA[
+from hpaste.hpasteshelffunctions import hpasteweb
+hpasteweb(None)
+]]>
+                                        </scriptCode>
+                                </scriptItem>
+                        </subMenu>
+                </subMenu>
         </menu>
 </mainMenu>
