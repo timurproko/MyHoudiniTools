@@ -41,10 +41,6 @@ def hideShelf():
     hou.hscript("set -g shelf_tab_val = '0'")
 hdefereval.executeDeferred(hideShelf)
 
-def hideStowbars():
-    mytools.toggle_stowbars(0)
-hdefereval.executeDeferred(hideStowbars)
-
 
 # Set UV Settings
 def setUVSettings():

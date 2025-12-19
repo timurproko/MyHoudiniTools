@@ -20,8 +20,6 @@ selected_desktop = kwargs["selectedtoken"]
 desktop = mytools.get_desktop_by_name(selected_desktop)
 if desktop:
     desktop.setAsCurrent()
-    mytools.toggle_stowbars(1)
-    mytools.toggle_stowbars(0)
     mytools.update_keymap()
 ]]>
                 </scriptCode>
@@ -30,25 +28,3 @@ if desktop:
 
 </menu>
 </menuDocument>
-
-
-
-                <!-- <scriptItem id="reload_cur_desktop">
-                <label>Reload Current Desktop</label>
-                <insertAfter>‹h.save_desktops</insertAfter> -->
-<!-- <scriptCode>
-<![CDATA[
-import mytools, hdefereval
-def showStowbars():
-        mytools.toggle_stowbars(1)
-hdefereval.executeDeferred(showStowbars)
-
-def hideStowbars():
-        mytools.toggle_stowbars(0)
-hdefereval.executeDeferred(hideStowbars)
-
-mytools.update_keymap()
-
-]]>
-</scriptCode>
-                </scriptItem> -->
