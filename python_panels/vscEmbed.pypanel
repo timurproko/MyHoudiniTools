@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <pythonPanelDocument>
-<!-- This file contains definitions of Python interfaces and the
-interfaces menu.  It should not be hand-edited when it is being
-used by the application.  Note, that two definitions of the
-same interface or of the interfaces menu are not allowed
-in a single file. -->
-<interface name="vscEmbed" label="Visual Studio Code" icon="MISC_python" showNetworkNavigationBar="false" help_url="">
-<script>
-<![CDATA[
+    <interface name="vscEmbed" label="Visual Studio Code" icon="MISC_python" showNetworkNavigationBar="false" help_url="">
+        <script>
+            <![CDATA[
 import hou
 try:
     # Houdini 20.5+/21 uses Qt6 (PySide6)
@@ -17,11 +12,13 @@ except ImportError:
     # Fallback for older Houdini versions that still ship PySide2/Qt5
     from PySide2 import QtCore, QtGui, QtWidgets
     from PySide2.QtCore import Qt
+
 import ctypes
+from nodes.constants import vex_wrangle as _vex_consts
 
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
-label = 'Visual Studio Code'
+label = _vex_consts.IDE_NAME
 
 GWL_HWNDPARENT = -8  
 GWL_STYLE = -16  
@@ -189,9 +186,9 @@ def onCreateInterface():
     _AppEmbed=AppEmbed(kwargs)
     return _AppEmbed
 ]]>
-</script>
-<includeInPaneTabMenu menu_position="0" create_separator="false"/>
-<includeInToolbarMenu menu_position="415" create_separator="false"/>
-<help><![CDATA[]]></help>
-</interface>
+        </script>
+        <includeInPaneTabMenu menu_position="0" create_separator="false"/>
+        <includeInToolbarMenu menu_position="415" create_separator="false"/>
+        <help><![CDATA[]]></help>
+    </interface>
 </pythonPanelDocument>

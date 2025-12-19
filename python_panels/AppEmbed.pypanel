@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <pythonPanelDocument>
-  <!-- This file contains definitions of Python interfaces and the
- interfaces menu.  It should not be hand-edited when it is being
- used by the application.  Note, that two definitions of the
- same interface or of the interfaces menu are not allowed
- in a single file. -->
-  <interface name="appEmbed" label="App Embed" icon="MISC_python" showNetworkNavigationBar="false" help_url="">
-    <script><![CDATA[import hou
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCore import Qt 
+    <interface name="appEmbed" label="App Embed" icon="MISC_python" showNetworkNavigationBar="false" help_url="">
+        <script>
+            <![CDATA[
+import hou
+try:
+    # Houdini 20.5+/21 uses Qt6 (PySide6)
+    from PySide6 import QtCore, QtGui, QtWidgets
+    from PySide6.QtCore import Qt
+except ImportError:
+    # Fallback for older Houdini versions that still ship PySide2/Qt5
+    from PySide2 import QtCore, QtGui, QtWidgets
+    from PySide2.QtCore import Qt
  
 import ctypes
 
 user32 = ctypes.windll.user32
-
 
 GWL_HWNDPARENT = -8  
 GWL_STYLE = -16  
@@ -227,9 +229,9 @@ def onCreateInterface():
 
     
 
-   ]]></script>
-    <includeInPaneTabMenu menu_position="0" create_separator="false"/>
-    <includeInToolbarMenu menu_position="415" create_separator="false"/>
-    <help><![CDATA[]]></help>
-  </interface>
+   ]]>        </script>
+        <includeInPaneTabMenu menu_position="0" create_separator="false"/>
+        <includeInToolbarMenu menu_position="415" create_separator="false"/>
+        <help><![CDATA[]]></help>
+    </interface>
 </pythonPanelDocument>

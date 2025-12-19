@@ -2,21 +2,21 @@
 <menuDocument>
     <menu>
 
-<subMenu id = "ctrl_menu">
-<insertBefore>channels_menu</insertBefore>
-<label>Parameters Control</label>
-<expression>
-<![CDATA[
+        <subMenu id = "ctrl_menu">
+            <insertBefore>channels_menu</insertBefore>
+            <label>Parameters Control</label>
+            <expression>
+                <![CDATA[
 if hou.getenv("CTRL_NODE"):
     return True
 else:
     return False
 ]]>
-</expression>
-<scriptItem id = "ctrl_parm_spare">
-<label>Set as Spare Parameter</label>
-<expression>
-<![CDATA[
+            </expression>
+            <scriptItem id = "ctrl_parm_spare">
+                <label>Set as Spare Parameter</label>
+                <expression>
+                    <![CDATA[
 import hou
 node = hou.selectedNodes()
 node = node[0]
@@ -25,23 +25,23 @@ if node.type().name() == "null":
 else:
     return True
 ]]>
-</expression>
-<scriptCode>
-<![CDATA[
+                </expression>
+                <scriptCode>
+                    <![CDATA[
 def runLater():
     import parms
     parms.parmUtils(kwargs).createRelativeReference(assign_to_definition=False)
 import hdefereval
 hdefereval.executeDeferred(runLater)
 ]]>
-</scriptCode>
-</scriptItem>
+                </scriptCode>
+            </scriptItem>
 
-<scriptItem id = "ctrl_parm_remove">
-<label>Remove Spare Parameter</label>
-<insertAfter>ctrl_parm_spare</insertAfter>
-<expression>
-<![CDATA[
+            <scriptItem id = "ctrl_parm_remove">
+                <label>Remove Spare Parameter</label>
+                <insertAfter>ctrl_parm_spare</insertAfter>
+                <expression>
+                    <![CDATA[
 import hou
 node = hou.selectedNodes()
 node = node[0]
@@ -55,30 +55,30 @@ if not isinstance(kwargs["parms"][0].parmTemplate(), hou.FolderSetParmTemplate):
 else:
     return False
 ]]>
-</expression>
-<scriptCode>
-<![CDATA[
+                </expression>
+                <scriptCode>
+                    <![CDATA[
 def runLater():
     import parms
     parms.parmUtils(kwargs).deleteParm()
 import hdefereval
 hdefereval.executeDeferred(runLater)
-]]>             
-</scriptCode>
-</scriptItem>
+]]>
+                </scriptCode>
+            </scriptItem>
 
-<scriptItem id = "ctrl_referencing">
-<label>Jump to Reference Node</label>
-<insertAfter>ctrl_parm_remove</insertAfter>
-<expression>
-<![CDATA[
+            <scriptItem id = "ctrl_referencing">
+                <label>Jump to Reference Node</label>
+                <insertAfter>ctrl_parm_remove</insertAfter>
+                <expression>
+                    <![CDATA[
 if kwargs["parms"][0].parmsReferencingThis():
     return True
 return False
 ]]>
-</expression>
-<scriptCode>
-<![CDATA[
+                </expression>
+                <scriptCode>
+                    <![CDATA[
 def runLater():
     import parms
     ref_node = kwargs["parms"][0].parmsReferencingThis()[-1].node()
@@ -91,35 +91,87 @@ def runLater():
             ref_node.setGenericFlag(hou.nodeFlag.Display, 1)
 import hdefereval
 hdefereval.executeDeferred(runLater)
-]]>            
-</scriptCode>
-</scriptItem>
+]]>
+                </scriptCode>
+            </scriptItem>
         </subMenu>
 
         <subMenu id="expression_menu">
-        <label>Expression</label>
-<addScriptItem id="open_vsc">
-<label>Edit in External Editor Embedded</label>
-<parent>expression_menu</parent>
-<insertAtIndex>3</insertAtIndex>
-<context>
-<expression>
-<![CDATA[
+            <label>Expression</label>
+            <addScriptItem id="open_external_editor">
+                <label>External Expression Editor</label>
+                <parent>expression_menu</parent>
+                <insertAfter>edit_expression</insertAfter>
+                <context>
+                    <expression>
+                        <![CDATA[
 try:
-    from HoudiniExprEditor import ParmWatcher
-    return ParmWatcher.is_valid_parm(kwargs["parms"][0])
+  import parms_watcher
+  return parms_watcher.is_valid_parm(kwargs["parms"][0])
+except:
+  return False]]></expression>
+                </context>
+                <scriptCode>
+                    <![CDATA[
+import parms_watcher
+try:
+  reload(parms_watcher)
+except NameError:
+  from importlib import reload
+  reload(parms_watcher)
+parms_watcher.add_watcher(kwargs["parms"][0])]]>
+                </scriptCode>
+            </addScriptItem>
+
+            <addScriptItem id="open_external_editor_embedded">
+                <label>Edit in External Editor Embedded</label>
+                <parent>expression_menu</parent>
+                <insertAfter>open_external_editor</insertAfter>
+                <context>
+                    <expression>
+                        <![CDATA[
+try:
+    import parms_watcher
+    return parms_watcher.is_valid_parm(kwargs["parms"][0])
 except:
     return False
 ]]>
-</expression>
-</context>
-<scriptCode>
-<![CDATA[
+                    </expression>
+                </context>
+                <scriptCode>
+                    <![CDATA[
 from nodes.scripts import vex_wrangle
-vex_wrangle.vscEmbed(kwargs["parms"][0], 'Visual Studio Code')
+from nodes.constants import vex_wrangle as _vex_consts
+vex_wrangle.vscEmbed(kwargs["parms"][0], _vex_consts.IDE_NAME)
 ]]>
-</scriptCode>
-</addScriptItem>
+                </scriptCode>
+            </addScriptItem>
+
+            <addScriptItem id="remove_file_watcher">
+                <label>Remove File Watcher</label>
+                <parent>expression_menu</parent>
+                <insertAfter>open_external_editor_embedded</insertAfter>
+                <context>
+                    <expression>
+                        <![CDATA[
+try:
+  from HoudiniExprEditor import ParmWatcher
+  return ParmWatcher.parm_has_watcher(kwargs["parms"][0])
+except:
+  return False]]>
+                    </expression>
+                </context>
+                <scriptCode>
+                    <![CDATA[
+import parms_watcher
+try:
+  reload(parms_watcher)
+except NameError:
+  from importlib import reload
+  reload(parms_watcher)
+parms_watcher.remove_file_watched(kwargs["parms"][0])]]>
+                </scriptCode>
+            </addScriptItem>
         </subMenu>
-        </menu>
+    </menu>
 </menuDocument>

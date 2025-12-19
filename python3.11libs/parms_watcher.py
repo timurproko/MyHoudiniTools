@@ -526,7 +526,6 @@ def remove_file_from_watcher(file_name, delete_file=True):
     except Exception:
         pass
     
-    # Delete the physical file if requested
     if delete_file:
         _delete_temp_file(file_name)
     

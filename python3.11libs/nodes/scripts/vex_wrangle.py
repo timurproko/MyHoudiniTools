@@ -211,7 +211,7 @@ def on_deleted(node):
 
 def edit_code(node):
     parm = node.parm("snippet")
-    vscEmbed(parm, "Visual Studio Code")
+    vscEmbed(parm, _vex_consts.IDE_NAME)
 
 
 def vscEmbed(parm, ide):
@@ -444,7 +444,7 @@ def _on_node_selection_changed():
     global _last_selected_node_path
     
     try:
-        if not mytools.is_panel_active("Visual Studio Code"):
+        if not mytools.is_panel_active(_vex_consts.IDE_NAME):
             _last_selected_node_path = None
             return
         
