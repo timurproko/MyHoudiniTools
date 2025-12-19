@@ -303,127 +303,74 @@ def get_parm_bindings():
 
 def clean_files():
     """Clean up orphaned bindings and watcher entries.
-    Handles cases where files don't exist, objects are deleted, or files are not in watcher.
+    Simplified, reliable cleanup that checks object validity once.
     """
+    bindings = get_parm_bindings()
+    if not bindings:
+        return
+    
+    keys_to_delete = []
+    
+    # Get a snapshot of bindings to avoid modification during iteration
     try:
-        bindings = get_parm_bindings()
-        watcher = get_file_watcher()
-        keys_to_delete = []
-        if bindings is None:
-            return
-        if not hasattr(bindings, 'items') or not hasattr(bindings, 'keys'):
-            return
-        items_to_check = []
+        items = list(bindings.items())
+    except (RuntimeError, KeyError):
         try:
-            items_to_check = list(bindings.items())
-        except (RuntimeError, KeyError) as dict_error:
-            try:
-                for key in list(bindings.keys()):
-                    try:
-                        items_to_check.append((key, bindings[key]))
-                    except (KeyError, RuntimeError):
-                        continue
-            except Exception:
-                return
-        for k, v in items_to_check:
-            try:
-                if not k or not isinstance(k, str):
-                    if k not in keys_to_delete:
-                        keys_to_delete.append(k)
-                    continue
-                if isinstance(v, str) and v == "__temp__python_source_editor":
-                    continue
-                if v is None:
-                    if k not in keys_to_delete:
-                        keys_to_delete.append(k)
-                    continue
-                file_exists = False
-                try:
-                    file_exists = os.path.exists(k)
-                except (OSError, PermissionError, ValueError) as path_error:
-                    file_exists = False
-                if not file_exists:
-                    remove_file_from_watcher(k)
-                    if k not in keys_to_delete:
-                        keys_to_delete.append(k)
-                    continue
-                object_deleted = False
-                try:
-                    is_tool = False
-                    has_path = False
-                    try:
-                        is_tool = isinstance(v, hou.Tool)
-                    except Exception:
-                        object_deleted = True
-                    if not object_deleted:
-                        try:
-                            has_path = hasattr(v, 'path')
-                        except Exception:
-                            object_deleted = True
-                    if not object_deleted:
-                        if is_tool:
-                            try:
-                                v.filePath()
-                            except (hou.ObjectWasDeleted, AttributeError, RuntimeError, TypeError):
-                                object_deleted = True
-                        elif has_path:
-                            try:
-                                v.path()
-                            except (hou.ObjectWasDeleted, AttributeError, RuntimeError, TypeError):
-                                object_deleted = True
-                        else:
-                            try:
-                                if not hasattr(v, '__class__'):
-                                    object_deleted = True
-                            except:
-                                object_deleted = True
-                except Exception:
-                    object_deleted = True
-                if object_deleted:
-                    remove_file_from_watcher(k)
-                    if k not in keys_to_delete:
-                        keys_to_delete.append(k)
-                    continue
-                try:
-                    if watcher is not None:
-                        try:
-                            watched_files = watcher.files()
-                            if k not in watched_files:
-                                if k not in keys_to_delete:
-                                    keys_to_delete.append(k)
-                        except (AttributeError, RuntimeError, TypeError):
-                            pass
-                except Exception:
-                    pass
-            except Exception as e:
-                try:
-                    remove_file_from_watcher(k)
-                    if k not in keys_to_delete:
-                        keys_to_delete.append(k)
-                except:
-                    if k not in keys_to_delete:
-                        keys_to_delete.append(k)
-        for k in keys_to_delete:
-            try:
-                if k in bindings:
-                    del bindings[k]
-            except (KeyError, RuntimeError):
-                pass
-            except Exception:
-                pass
-    except Exception as e:
+            items = [(k, bindings[k]) for k in list(bindings.keys())]
+        except Exception:
+            return
+    
+    for file_path, binding in items:
+        if not file_path or not isinstance(file_path, str):
+            keys_to_delete.append(file_path)
+            continue
+        
+        # Special case for session module source
+        if binding == "__temp__python_source_editor":
+            continue
+        
+        # Check if binding object is still valid
+        is_valid = False
+        try:
+            if isinstance(binding, hou.Tool):
+                binding.filePath()  # Test if tool is valid
+                is_valid = True
+            elif isinstance(binding, hou.Parm):
+                binding.parmTemplate()  # Test if parm is valid
+                is_valid = True
+            elif isinstance(binding, hou.Node):
+                binding.path()  # Test if node is valid
+                is_valid = True
+        except (hou.ObjectWasDeleted, AttributeError, RuntimeError, TypeError):
+            is_valid = False
+        
+        if not is_valid:
+            remove_file_from_watcher(file_path)
+            keys_to_delete.append(file_path)
+    
+    # Remove invalid entries
+    for k in keys_to_delete:
+        try:
+            if k in bindings:
+                del bindings[k]
+        except (KeyError, RuntimeError):
+            pass
+
+def _parm_deleted(parm, **kwargs):
+    """Unified deletion handler for parm-based watchers."""
+    try:
+        file_name = get_file_name(parm, type_="parm")
+        remove_file_from_watcher(file_name, delete_file=True)
+    except Exception:
         pass
 
 def _node_deleted(node, **kwargs):
+    """Deletion handler for python node-based watchers."""
     try:
         file_name = get_file_name(node, type_="python_node")
-        bindings = get_parm_bindings()
-        if bindings:
-            if file_name in bindings.keys():
-                del bindings[file_name]
-        remove_file_from_watcher(file_name)
-    except Exception as e:
-        print("Error un callback: onDelete: " + str(e))
+        remove_file_from_watcher(file_name, delete_file=True)
+    except Exception:
+        pass
 
 def add_watcher_to_section(selection):
     sel_def = selection.type().definition()
@@ -488,9 +435,20 @@ def add_watcher(selection, type_="parm"):
         parms_bindings = hou.session.PARMS_BINDINGS
     if not file_path in parms_bindings.keys():
         parms_bindings[file_path] = selection
+        # Register deletion callbacks for automatic cleanup
         if type_ == "python_node" or "extra_section|" in type_:
             selection.addEventCallback((hou.nodeEventType.BeingDeleted,),
                                        _node_deleted)
+        elif type_ == "parm":
+            # Register callback on the node containing the parm
+            # Capture file_path in closure to avoid issues with deleted parm
+            node = selection.node()
+            if node:
+                # Capture file_path in closure
+                captured_file_path = file_path
+                def _node_deleted_handler(*args, **kwargs):
+                    remove_file_from_watcher(captured_file_path, delete_file=True)
+                node.addEventCallback((hou.nodeEventType.BeingDeleted,), _node_deleted_handler)
     clean_files()
 
 def parm_has_watcher(parm):
@@ -523,20 +481,56 @@ def tool_has_watcher(tool, type_=""):
         return True
     return False
 
-def remove_file_from_watcher(file_name):
-    """Remove file from watcher and bindings.
-    Returns True if successfully removed from watcher, False otherwise.
+def _delete_temp_file(file_name):
+    """Delete the temporary file if it exists.
+    Simple, reliable file deletion without retries.
     """
+    if not file_name or not isinstance(file_name, str):
+        return False
+    
+    try:
+        if os.path.exists(file_name):
+            os.remove(file_name)
+            return True
+    except (OSError, PermissionError, FileNotFoundError):
+        pass
+    except Exception:
+        pass
+    
+    return False
+
+def remove_file_from_watcher(file_name, delete_file=True):
+    """Remove file from watcher and bindings.
+    Returns True if successfully removed, False otherwise.
+    This is the single, reliable cleanup function.
+    """
+    if not file_name or not isinstance(file_name, str):
+        return False
+    
+    removed = False
     try:
         watcher = get_file_watcher()
-        if watcher and file_name in watcher.files():
-            watcher.removePath(file_name)
+        if watcher:
+            watched_files = watcher.files()
+            if file_name in watched_files:
+                watcher.removePath(file_name)
+                removed = True
+    except Exception:
+        pass
+    
+    try:
         bindings = get_parm_bindings()
         if bindings and file_name in bindings:
             del bindings[file_name]
-        return True
-    except Exception as e:
-        return False
+            removed = True
+    except Exception:
+        pass
+    
+    # Delete the physical file if requested
+    if delete_file:
+        _delete_temp_file(file_name)
+    
+    return removed
 
 def remove_parm_from_watcher(parm, type_="parm"):
     """Remove a parameter's file from watcher and bindings.

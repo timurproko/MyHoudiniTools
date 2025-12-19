@@ -187,85 +187,26 @@ def delete_parms(node):
 
 
 def on_deleted(node):
-    """Called when a vex_wrangle node is being deleted."""
-    import os
-    from importlib import reload
-    
+    """Called when a vex_wrangle node is being deleted.
+    Simplified: relies on parms_watcher's unified deletion handler.
+    """
     if node is None:
         return
     
     try:
         parm = node.parm("snippet")
     except (AttributeError, RuntimeError):
-        parm = None
+        return
     
     if parm is None:
         return
     
+    # Use the unified watcher cleanup - it handles everything
     try:
         import parms_watcher
-        try:
-            reload(parms_watcher)
-        except (NameError, TypeError):
-            from importlib import reload as reload_module
-            reload_module(parms_watcher)
-    except (ImportError, AttributeError) as e:
-        return
-    
-    file_path = None
-    try:
-        file_path = parms_watcher.get_file_name(parm, type_="parm")
-    except (AttributeError, TypeError, ValueError) as e:
-        file_path = None
-    
-    watcher_removed = False
-    if file_path:
-        try:
-            watcher_removed = parms_watcher.remove_file_from_watcher(file_path)
-        except (AttributeError, TypeError, ValueError):
-            watcher_removed = False
-    
-    if not file_path or not watcher_removed:
-        try:
-            if hasattr(parms_watcher, 'remove_parm_from_watcher'):
-                parms_watcher.remove_parm_from_watcher(parm)
-                watcher_removed = True
-        except (AttributeError, TypeError, ValueError):
-            pass
-    
-    if watcher_removed:
-        try:
-            parms_watcher.clean_files()
-        except (AttributeError, TypeError):
-            pass
-    
-    if file_path and os.path.exists(file_path):
-        max_retries = 5
-        retry_delay = 0.1
-        
-        for attempt in range(max_retries):
-            try:
-                if not os.path.exists(file_path):
-                    break
-                
-                os.remove(file_path)
-                
-                if not os.path.exists(file_path):
-                    break
-                    
-            except (OSError, PermissionError, FileNotFoundError) as e:
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                else:
-                    try:
-                        time.sleep(0.5)
-                        if os.path.exists(file_path):
-                            os.remove(file_path)
-                    except (OSError, PermissionError, FileNotFoundError):
-                        pass
-            except Exception:
-                break
+        parms_watcher.remove_parm_from_watcher(parm, type_="parm")
+    except Exception:
+        pass
 
 
 def edit_code(node):
