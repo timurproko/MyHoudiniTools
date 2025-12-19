@@ -1,184 +1,184 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <mainMenu>
-<menu>
-        <subMenu id="file_menu">
-                <label>File</label>
-                <scriptItem id="save_inc">
-                <insertAfter>h.save_as</insertAfter>
-                <label>Save Incremental</label>
-                <scriptCode>
-<![CDATA[
+        <menu>
+                <subMenu id="file_menu">
+                        <label>File</label>
+                        <scriptItem id="save_inc">
+                                <insertAfter>h.save_as</insertAfter>
+                                <label>Save Incremental</label>
+                                <scriptCode>
+                                        <![CDATA[
 import versions
 from imp import reload
 reload(versions)
 versions.incsave()
 ]]>
 
-                </scriptCode>
-                </scriptItem>
-        </subMenu>
+                                </scriptCode>
+                        </scriptItem>
+                </subMenu>
 
-        <subMenu id="edit_menu">
-                <label>Edit</label>
-                <scriptItem id="h.toggle_stowbars">
-                <label>Toggle Stowbars</label>
-                <scriptCode>
-<![CDATA[
+                <subMenu id="edit_menu">
+                        <label>Edit</label>
+                        <scriptItem id="h.toggle_stowbars">
+                                <label>Toggle Stowbars</label>
+                                <scriptCode>
+                                        <![CDATA[
 import mytools
 mytools.toggle_stowbars()
 ]]>
-                </scriptCode>
-                </scriptItem>
-        </subMenu>
+                                </scriptCode>
+                        </scriptItem>
+                </subMenu>
 
-        <subMenu id="labs_menu">
-                <insertAfter>assets_menu</insertAfter>
-        </subMenu>
+                <subMenu id="labs_menu">
+                        <insertAfter>assets_menu</insertAfter>
+                </subMenu>
 
-        <subMenu id="my_tools_menu">
-                <insertBefore>windows_menu</insertBefore>
-                <label>MyTools</label>
+                <subMenu id="my_tools_menu">
+                        <insertBefore>windows_menu</insertBefore>
+                        <label>MyTools</label>
 
-        <subMenu id="mytools_ui_tools">
-        <label>UI</label>
+                        <subMenu id="mytools_ui_tools">
+                                <label>UI</label>
 
-                <scriptItem id="reload_theme">
-                <label>Reload Theme</label>
+                                <scriptItem id="reload_theme">
+                                        <label>Reload Theme</label>
 
-<scriptCode>
-<![CDATA[
+                                        <scriptCode>
+                                                <![CDATA[
 hou.ui.reloadColorScheme()
 ]]>
-</scriptCode>
-                </scriptItem>
-                <scriptItem id="reload_viewport">
-                <label>Reload Viewport</label>
+                                        </scriptCode>
+                                </scriptItem>
+                                <scriptItem id="reload_viewport">
+                                        <label>Reload Viewport</label>
 
-<scriptCode>
-<![CDATA[
+                                        <scriptCode>
+                                                <![CDATA[
 hou.ui.reloadViewportColorSchemes()
 hou.ui.reloadColorScheme()
 ]]>
-</scriptCode>
-                </scriptItem>
-        </subMenu>
+                                        </scriptCode>
+                                </scriptItem>
+                        </subMenu>
 
-        <subMenu id="mytools_sim_tools">
-        
-        <label>Simulation</label>
+                        <subMenu id="mytools_sim_tools">
 
-                <scriptItem id="toggle_sim">
-                <labelExpression>
-<![CDATA[
+                                <label>Simulation</label>
+
+                                <scriptItem id="toggle_sim">
+                                        <labelExpression>
+                                                <![CDATA[
 mode = hou.simulationEnabled()
 if mode == 0:
         return 'Enable Simulation'
 elif mode == 1:
         return 'Disable Simulation'
-]]>               
-                </labelExpression>
-<scriptCode>
-<![CDATA[
+]]>
+                                        </labelExpression>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_sim()
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="auto_update_sim">
-                <labelExpression>
-<![CDATA[
+                                <scriptItem id="auto_update_sim">
+                                        <labelExpression>
+                                                <![CDATA[
 mode = hou.updateModeSetting().name()
 if mode == 'AutoUpdate':
         return 'Enable Manual Update'
 elif mode == 'Manual':
         return 'Enable Auto Update'
-]]>               
-                </labelExpression>
-<scriptCode>
-<![CDATA[
+]]>
+                                        </labelExpression>
+                                        <scriptCode>
+                                                <![CDATA[
 mode = hou.updateModeSetting().name()
 if mode == 'AutoUpdate':
         hou.setUpdateMode(hou.updateMode.Manual)
 elif mode == 'Manual':
         hou.setUpdateMode(hou.updateMode.AutoUpdate)
 ]]>
-</scriptCode>
-                </scriptItem>
-        </subMenu>
+                                        </scriptCode>
+                                </scriptItem>
+                        </subMenu>
 
-        <subMenu id="mytools_node_tools">
-        <label>Node</label>
+                        <subMenu id="mytools_node_tools">
+                                <label>Node</label>
 
-                <scriptItem id="change_color">
-                <label>Color Picker...</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="change_color">
+                                        <label>Color Picker...</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.change_node_color()
 ]]>
-</scriptCode>
-                </scriptItem>
-                <scriptItem id="create_obj_merge">
-                <label>Create Object Merge</label>
-<scriptCode>
-<![CDATA[
+                                        </scriptCode>
+                                </scriptItem>
+                                <scriptItem id="create_obj_merge">
+                                        <label>Create Object Merge</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.create_obj_merge()
 ]]>
-</scriptCode>
-                </scriptItem>
-                <scriptItem id="ctrl_select">
-                <label>Select CTRL</label>
-<scriptCode>
-<![CDATA[
+                                        </scriptCode>
+                                </scriptItem>
+                                <scriptItem id="ctrl_select">
+                                        <label>Select CTRL</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.ctrl_select()
 ]]>
-</scriptCode>
-                </scriptItem>
-                <scriptItem id="convert_hda">
-                <label>Convert HDA to Subnet</label>
-<scriptCode>
-<![CDATA[
+                                        </scriptCode>
+                                </scriptItem>
+                                <scriptItem id="convert_hda">
+                                        <label>Convert HDA to Subnet</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.convert_hda_to_subnet()
 ]]>
-</scriptCode>
-                </scriptItem>
-        </subMenu>
-        <subMenu id="mytools_texture_tools">
-        <label>Texture</label>
-                <scriptItem id="clear_texture_cache">
-                <label>Clear Cache</label>
-<scriptCode>
-<![CDATA[
+                                        </scriptCode>
+                                </scriptItem>
+                        </subMenu>
+                        <subMenu id="mytools_texture_tools">
+                                <label>Texture</label>
+                                <scriptItem id="clear_texture_cache">
+                                        <label>Clear Cache</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import hou
 hou.hscript("texcache -c")
 hou.hscript("glcache -r")
 ]]>
-</scriptCode>
-                </scriptItem>
-                <scriptItem id="preview_uv">
-                <label>Preview UV...</label>
-<scriptCode>
-<![CDATA[
+                                        </scriptCode>
+                                </scriptItem>
+                                <scriptItem id="preview_uv">
+                                        <label>Preview UV...</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.preview_uv()
 ]]>
-</scriptCode>
-                </scriptItem>
-        </subMenu>
+                                        </scriptCode>
+                                </scriptItem>
+                        </subMenu>
 
-        <subMenu id="mytools_obj_menu">
-        <label>Node.Obj</label>
-        <insertAfter>mytools_node_tools</insertAfter>
+                        <subMenu id="mytools_obj_menu">
+                                <label>Node.Obj</label>
+                                <insertAfter>mytools_node_tools</insertAfter>
 
-                <scriptItem id="obj_merge">
-                <label>Merge</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="obj_merge">
+                                        <label>Merge</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import toolutils
 import soptoolutils
 
@@ -219,13 +219,13 @@ toolutils.homeToSelectionNetworkEditorsFor(merge_sop)
 scene_viewer.enterCurrentNodeState()
 hou.ui.setStatusMessage("Merge finished.")
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="obj_combine">
-                <label>Combine</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="obj_combine">
+                                        <label>Combine</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import toolutils
 import soptoolutils
 
@@ -263,69 +263,69 @@ container.combine(selection)
 toolutils.homeToSelectionNetworkEditorsFor(container)
 hou.ui.setStatusMessage("Combine finished.")
 ]]>
-</scriptCode>
-                </scriptItem>
-        </subMenu>
+                                        </scriptCode>
+                                </scriptItem>
+                        </subMenu>
 
-                <separatorItem/>
+                        <separatorItem/>
 
-        <subMenu id="mytools_toggle_ui">
-        <label>Toggle UI</label>
+                        <subMenu id="mytools_toggle_ui">
+                                <label>Toggle UI</label>
 
-                <scriptItem id="toggle_fullscreen">
-                <label>Fulscreen Mode</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_fullscreen">
+                                        <label>Fulscreen Mode</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_fullscreen()
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_bg">
-                <label>Background Color</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_bg">
+                                        <label>Background Color</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_bg()
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_desktops">
-                <label>Toggle Dekstops</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_desktops">
+                                        <label>Toggle Dekstops</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_ui_desktops()
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_ui_network">
-                <label>Network Controls</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_ui_network">
+                                        <label>Network Controls</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_ui_network()
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_ui_menu">
-                <label>Main Menu</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_ui_menu">
+                                        <label>Main Menu</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_menu()
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_ui_tabs">
-                <label>Pane Tabs</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_ui_tabs">
+                                        <label>Pane Tabs</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import hou
 paneTab = hou.ui.paneTabUnderCursor()
 if paneTab:
@@ -334,33 +334,33 @@ if paneTab:
         b = not b
         pane.showPaneTabs(b)
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_ui_pin">
-                <label>Pane Pin</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_ui_pin">
+                                        <label>Pane Pin</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_pin()
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_ui_shelf">
-                <label>Shelf</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_ui_shelf">
+                                        <label>Shelf</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_shelf()
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_ui_bars">
-                <label>Bars</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_ui_bars">
+                                        <label>Bars</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 pane_tab = hou.ui.paneTabUnderCursor()
 if pane_tab and pane_tab.type() == hou.paneTabType.SceneViewer:
@@ -380,333 +380,333 @@ if pane_tab and pane_tab.type() == hou.paneTabType.SceneViewer:
                 pane_tab.showOperationBar(1)
                 pane_tab.showDisplayOptionsBar(1)
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_ui_selectionBar">
-                <label>Selection Bar</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_ui_selectionBar">
+                                        <label>Selection Bar</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_toolbar('selection')
 ]]>
-                </scriptCode>
-                </scriptItem>
-                <scriptItem id="toggle_ui_operationBar">
-                <label>Operation Bar</label>
-                <scriptCode>
-<![CDATA[
+                                        </scriptCode>
+                                </scriptItem>
+                                <scriptItem id="toggle_ui_operationBar">
+                                        <label>Operation Bar</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_toolbar('operation')
 ]]>
-                </scriptCode>
-                </scriptItem>
-                <scriptItem id="toggle_ui_displayOptionsBar">
-                <label>Display Options Bar</label>
-                <scriptCode>
-<![CDATA[
+                                        </scriptCode>
+                                </scriptItem>
+                                <scriptItem id="toggle_ui_displayOptionsBar">
+                                        <label>Display Options Bar</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_toolbar('displayOptions')
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="stowbars_on">
-                <label>Stowbars On</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="stowbars_on">
+                                        <label>Stowbars On</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools, hdefereval
 def showStowbars():
         mytools.toggle_stowbars(1)
 hdefereval.executeDeferred(showStowbars)
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="stowbars_off">
-                <label>Stowbars Off</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="stowbars_off">
+                                        <label>Stowbars Off</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools, hdefereval
 def hideStowbars():
         mytools.toggle_stowbars(0)
 hdefereval.executeDeferred(hideStowbars)
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-        </subMenu>
+                        </subMenu>
 
-        
-        <subMenu id="mytools_toggle_shading_mode">
-        <label>Toggle Shading Mode</label>
 
-                <scriptItem id="toggle_shading_mode">
-                <label>Primary Mode</label>
-                <scriptCode>
-<![CDATA[
+                        <subMenu id="mytools_toggle_shading_mode">
+                                <label>Toggle Shading Mode</label>
+
+                                <scriptItem id="toggle_shading_mode">
+                                        <label>Primary Mode</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_shading_mode()
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_shading_mode_pair">
-                <label>Secondary Mode</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_shading_mode_pair">
+                                        <label>Secondary Mode</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.toggle_shading_mode_pair()
 ]]>
-                </scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="toggle_shading_mode_matcap">
-                <label>Matcap</label>
-                <scriptCode>
-<![CDATA[
+                                <scriptItem id="toggle_shading_mode_matcap">
+                                        <label>Matcap</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 HOUDINI_HOME = hou.homeHoudiniDirectory()
 MATCAP_FOLDER = "/packages/MyTools/lookdev/matcaps/"
 directory = HOUDINI_HOME + MATCAP_FOLDER
 mytools.toggle_matcaps_in_directory(directory)
 ]]>
-                </scriptCode>
-                </scriptItem>
-        </subMenu>
+                                        </scriptCode>
+                                </scriptItem>
+                        </subMenu>
 
-        <subMenu id="mytools_switch_tab">
-        <label>Switch to Tab</label>
+                        <subMenu id="mytools_switch_tab">
+                                <label>Switch to Tab</label>
 
-                <scriptItem id="switch_tabs">
-                <label>Switch Tabs</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="switch_tabs">
+                                        <label>Switch Tabs</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_next_tab()
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="switch_tabs_back">
-                <label>Switch Tabs Backward</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="switch_tabs_back">
+                                        <label>Switch Tabs Backward</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_next_tab(False, -1)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_1">
-                <label>Tab 1</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_1">
+                                        <label>Tab 1</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(0)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_2">
-                <label>Tab 2</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_2">
+                                        <label>Tab 2</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(1)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_3">
-                <label>Tab 3</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_3">
+                                        <label>Tab 3</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(2)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_4">
-                <label>Tab 4</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_4">
+                                        <label>Tab 4</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(3)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_5">
-                <label>Tab 5</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_5">
+                                        <label>Tab 5</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(4)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_6">
-                <label>Tab 6</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_6">
+                                        <label>Tab 6</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(5)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_7">
-                <label>Tab 7</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_7">
+                                        <label>Tab 7</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(6)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_8">
-                <label>Tab 8</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_8">
+                                        <label>Tab 8</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(7)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_9">
-                <label>Tab 9</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_9">
+                                        <label>Tab 9</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(8)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-        </subMenu>
+                        </subMenu>
 
-                <subMenu id="mytools_switch_tab_detailsView">
-        <label>Switch to Tab Spreadsheet</label>
+                        <subMenu id="mytools_switch_tab_detailsView">
+                                <label>Switch to Tab Spreadsheet</label>
 
-                <scriptItem id="switch_tabs_detailsView">
-                <label>Switch Tabs</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="switch_tabs_detailsView">
+                                        <label>Switch Tabs</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_next_tab(True)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_1_detailsView">
-                <label>Tab 1</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_1_detailsView">
+                                        <label>Tab 1</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(0, True)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_2_detailsView">
-                <label>Tab 2</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_2_detailsView">
+                                        <label>Tab 2</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(1, True)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_3_detailsView">
-                <label>Tab 3</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_3_detailsView">
+                                        <label>Tab 3</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(2, True)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tab_4_detailsView">
-                <label>Tab 4</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tab_4_detailsView">
+                                        <label>Tab 4</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_tab(3, True)
 ]]>
-</scriptCode>
-                </scriptItem>
-        </subMenu>
+                                        </scriptCode>
+                                </scriptItem>
+                        </subMenu>
 
-        <subMenu id="mytools_switch_menu">
-        <label>Switch to Pane</label>
-        
-                <scriptItem id="switch_sceneviewer">
-                <label>Scene View</label>
-<scriptCode>
-<![CDATA[
+                        <subMenu id="mytools_switch_menu">
+                                <label>Switch to Pane</label>
+
+                                <scriptItem id="switch_sceneviewer">
+                                        <label>Scene View</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_pane(hou.paneTabType.SceneViewer)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="switch_net">
-                <label>Network Editor</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="switch_net">
+                                        <label>Network Editor</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_pane(hou.paneTabType.NetworkEditor, 1)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="switch_parm">
-                <label>Parameters</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="switch_parm">
+                                        <label>Parameters</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_pane(hou.paneTabType.Parm)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="switch_geosheet">
-                <label>Geometry Spreadsheet</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="switch_geosheet">
+                                        <label>Geometry Spreadsheet</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_pane(hou.paneTabType.DetailsView)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="switch_chanedit">
-                <label>Animation Editor</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="switch_chanedit">
+                                        <label>Animation Editor</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_pane(hou.paneTabType.ChannelEditor)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="switch_console">
-                <label>Console</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="switch_console">
+                                        <label>Console</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.switch_to_pane(hou.paneTabType.PythonShell, 0)
 ]]>
-</scriptCode>
-                </scriptItem>
-                <!-- <scriptItem id="switch_scenegraphdetails">
+                                        </scriptCode>
+                                </scriptItem>
+                                <!-- <scriptItem id="switch_scenegraphdetails">
                 <label>Scene Graph Details</label>
 <scriptCode>
 <![CDATA[
@@ -714,20 +714,20 @@ import mytools
 mytools.switch_to_pythonPane('SceneGraphDetails', 0)
 ]]>
 </scriptCode>
-                </scriptItem>
+</scriptItem>
 
-                <scriptItem id="switch_scenegraph">
-                <label>Scene Graph Tree</label>
+<scriptItem id="switch_scenegraph">
+<label>Scene Graph Tree</label>
 <scriptCode>
 <![CDATA[
 import mytools
 mytools.switch_to_pane(hou.paneTabType.SceneGraphTree, 0)
 ]]>
 </scriptCode>
-                </scriptItem>
+</scriptItem>
 
-                <scriptItem id="switch_layers">
-                <label>Scene Graph Layers</label>
+<scriptItem id="switch_layers">
+<label>Scene Graph Layers</label>
 <scriptCode>
 <![CDATA[
 import mytools
@@ -735,140 +735,161 @@ mytools.switch_to_pythonPane('SceneGraphLayersPanel', 0)
 ]]>
 </scriptCode>
 
-                </scriptItem> -->
-        </subMenu>
+</scriptItem> -->
+                        </subMenu>
 
-        <subMenu id="mytools_open_menu">
-        <label>Open Floating Pane</label>
+                        <subMenu id="mytools_open_menu">
+                                <label>Open Floating Pane</label>
 
-                <scriptItem id="keymap_manager">
-                <label>Hotkey Manager</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="keymap_manager">
+                                        <label>Hotkey Manager</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.open_keymap_manager()
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="tree_view">
-                <label>Tree View</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="tree_view">
+                                        <label>Tree View</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.open_floating_pane(hou.paneTabType.TreeView)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="channel_editor">
-                <label>Animation Editor</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="channel_editor">
+                                        <label>Animation Editor</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.open_floating_pane(hou.paneTabType.ChannelEditor, 1)
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-        </subMenu>
+                        </subMenu>
 
-                <separatorItem/>
+                        <separatorItem/>
 
-        <subMenu id="mytools_preview_tools">
-        <label>Preview</label>
+                        <subMenu id="mytools_preview_tools">
+                                <label>Preview</label>
 
-                <scriptItem id="preview_output">
-                <label>Output</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="preview_output">
+                                        <label>Output</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.preview_output()
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="preview_console">
-                <label>Number</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="preview_console">
+                                        <label>Number</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.preview_console()
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="preview_color">
-                <label>Color</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="preview_color">
+                                        <label>Color</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.preview_color()
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-                <scriptItem id="preview_redshift">
-                <label>Redshift Material</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="preview_redshift">
+                                        <label>Redshift Material</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mytools
 mytools.review_redshift()
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-        </subMenu>
+                        </subMenu>
 
-                <separatorItem/>
+                        <separatorItem/>
 
-        <subMenu id="mytools_install_options">
-        <label>Install</label>
+                        <subMenu id="mytools_install_options">
+                                <label>Install</label>
 
-                <scriptItem id="update_mops">
-                <label>Update MOPs...</label>
-<scriptCode>
-<![CDATA[
+                                <scriptItem id="update_mops">
+                                        <label>Update MOPs...</label>
+                                        <scriptCode>
+                                                <![CDATA[
 import mops_updater
 # launch ui
 win = mops_updater.MOPsUpdateWindow(hou.ui.mainQtWindow())
 ]]>
-</scriptCode>
-                </scriptItem>
+                                        </scriptCode>
+                                </scriptItem>
 
-        </subMenu>
+                        </subMenu>
 
-                <separatorItem/>
+                        <separatorItem/>
 
-                <scriptItem id="edit_key_overrides">
-                <label>Edit Keymap Overrides...</label>
-<scriptCode>
-<![CDATA[
+                        <scriptItem id="edit_key_overrides">
+                                <label>Edit Keymap Overrides...</label>
+                                <scriptCode>
+                                        <![CDATA[
 import mytools
 mytools.openFile("/packages/MyTools/Houdini.keymap2.overrides")
 ]]>
-</scriptCode>
-                </scriptItem>
+                                </scriptCode>
+                        </scriptItem>
 
-                <scriptItem id="edit_node_hotkeys">
-                <label>Edit Network Hotkeys...</label>
-<scriptCode>
-<![CDATA[
+                        <scriptItem id="edit_node_hotkeys">
+                                <label>Edit Network Hotkeys...</label>
+                                <scriptCode>
+                                        <![CDATA[
 import mytools
 mytools.openFile("/packages/HotkeySystem/hotkeys.csv")
 ]]>
-</scriptCode>
-                </scriptItem>
+                                </scriptCode>
+                        </scriptItem>
 
-                <scriptItem id="edit_mytools_menu">
-                <label>Edit This Menu...</label>
-<scriptCode>
-<![CDATA[
+                        <scriptItem id="edit_mytools_menu">
+                                <label>Edit This Menu...</label>
+                                <scriptCode>
+                                        <![CDATA[
 import mytools
 mytools.openFile("/packages/MyTools/MainMenuCommon.xml")
 ]]>
-</scriptCode>
-                </scriptItem>
-        </subMenu>
-</menu>
+                                </scriptCode>
+                        </scriptItem>
+                </subMenu>
+                <subMenu id = "assets_menu">
+                        <label>Assets</label>
+                        <subMenu id="asset_bar_submenu">
+                                <label>Asset Definition Toolbar</label>
+                                <menuStripRadio id="asset_bar">
+                                        <value>parmdialog.asset_bar.val</value>
+                                        <radioItem id="h.asset_bar_all">
+                                                <label>Show Always</label>
+                                        </radioItem>
+                                        <radioItem id="h.asset_bar_multi">
+                                                <label>Show When Needed</label>
+                                        </radioItem>
+                                        <radioItem id="h.asset_bar_current">
+                                                <label>Show Current Definition</label>
+                                        </radioItem>
+                                        <radioItem id="h.asset_bar_hide">
+                                                <label>Hide</label>
+                                        </radioItem>
+                                </menuStripRadio>
+                        </subMenu>
+                </subMenu>
+        </menu>
 </mainMenu>
