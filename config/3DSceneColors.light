@@ -38,7 +38,7 @@ GridZRulerColor:	            0.00 0.00 1.00 	        # reference grid z ruler co
 TextColor:		                0.95 0.95 0.95          # viewport text 
 TextShadowColor:	            0.30 0.30 0.30          # viewport text dropshadow
 LabelColor:		                0.85 0.85 0.85          # labels in viewports
-SelectedLabelColor:	            @BackgroundBottomColor  # labels in the selected viewport
+SelectedLabelColor:	            0.45 0.45 0.45          # labels in the selected viewport
 
 OverlayBackgroundColor:	        @OverlayBackground	    # Background of group list
 OverlayBackgroundAlpha:	        ALPHA 0.8	            # Alpha for background of group list
