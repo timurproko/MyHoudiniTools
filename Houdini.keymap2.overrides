@@ -211,12 +211,12 @@
 				},
 				{
 					"action":"h.switch_tabs",
-					"keys":["Ctrl+RightArrow"
+					"keys":["Ctrl+Alt+RightArrow"
 					]
 				},
 				{
 					"action":"h.switch_tabs_back",
-					"keys":["Ctrl+LeftArrow"
+					"keys":["Ctrl+Alt+LeftArrow"
 					]
 				},
 				{
