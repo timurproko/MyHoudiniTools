@@ -164,7 +164,6 @@ def load_preset(kwargs, load_by_button=0):
     hda_name = node.name()
     parm = kwargs['parm']
     
-    # Extract the index from the parameter name
     parm_name = parm.name()
     index = parm_name[-1]
     
@@ -175,7 +174,6 @@ def load_preset(kwargs, load_by_button=0):
     item = node.parm(f"presets{index}").evalAsString()
     dist_path = node.parm(f"destination_node{index}").eval()
     
-    # Check if the item and dist are valid
     if not item:
         print(f"{hda_name}: No preset selected for instance {index}.")
         return
@@ -183,7 +181,6 @@ def load_preset(kwargs, load_by_button=0):
         print(f"{hda_name}: Destination node not specified for instance {index}.")
         return
 
-    # Get the destination node
     dist_node = hou.node(dist_path)
     if not dist_node:
         print(f"{hda_name}: Invalid destination node specified for instance {index}: {dist_path}")
@@ -200,30 +197,21 @@ def load_preset(kwargs, load_by_button=0):
 
 
 def generate_menu_from_json_files(node, index):
-    # Retrieve the directory path from the parameter of the given instance
     dir_path = node.parm(f"presets_folder{index}").eval()
     
-    # Initialize the menu list
     menu = []
     
-    # Check if the directory exists
     if not os.path.isdir(dir_path):
-        #print(f"Directory does not exist: {dir_path}")
         return menu
     
-    # Iterate over all files in the directory
     json_files = [f for f in os.listdir(dir_path) if f.endswith(".json")]
     
     if not json_files:
-        #print(f"No JSON files found in directory: {dir_path}")
         return menu
     
     for filename in json_files:
-        # Construct the full path to the file
         file_path = os.path.join(dir_path, filename)
-        # Create a display name by removing the '.json' extension and replacing underscores with spaces
         display_name = os.path.splitext(filename)[0].replace('_', ' ')
-        # Append the token (file path) and label (display_name) to the menu
         menu.append(file_path)
         menu.append(display_name)
     
@@ -236,25 +224,20 @@ def open_present_folder(kwargs):
     hda_name = node.name()
     parm = kwargs['parm']
     
-    # Extract the index from the parameter name
     parm_name = parm.name()
     index = parm_name[-1]
     
-    # Retrieve the directory path from the corresponding multiparm instance
     dir_path = node.parm(f"presets_folder{index}").eval()
     
-    # Check if the directory exists
     if not os.path.isdir(dir_path):
-        #print(f"{hda_name}: Directory does not exist: {dir_path}")
         return
     
-    # Open the folder in the system file manager
     try:
         if platform.system() == "Windows":
             os.startfile(dir_path)
-        elif platform.system() == "Darwin":  # macOS
+        elif platform.system() == "Darwin":
             subprocess.Popen(["open", dir_path])
-        else:  # Linux and other UNIX-like systems
+        else:
             subprocess.Popen(["xdg-open", dir_path])
     except Exception as e:
         print(f"{hda_name}: Error opening folder: {e}")

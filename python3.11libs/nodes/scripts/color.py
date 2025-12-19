@@ -12,8 +12,6 @@ def _color_changed(node, _event_type=None, **kwargs):
         if parm_tuple.name() != "color":
             return
         color = parm_tuple.eval()
-        # Apply gamma correction to darken color for node display
-        # Houdini brightens node colors, so we darken them to match
         gamma = 0.45
         darkened_color = tuple(c ** gamma for c in color)
         node.setColor(hou.Color(darkened_color))
@@ -34,7 +32,6 @@ def ensure_installed(node):
             return True
 
         node.addEventCallback((hou.nodeEventType.ParmTupleChanged,), _color_changed)
-        # Set initial color when callback is installed
         color_parm = node.parmTuple("color")
         if color_parm is not None:
             try:

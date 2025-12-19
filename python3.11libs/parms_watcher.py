@@ -311,7 +311,6 @@ def clean_files():
     
     keys_to_delete = []
     
-    # Get a snapshot of bindings to avoid modification during iteration
     try:
         items = list(bindings.items())
     except (RuntimeError, KeyError):
@@ -325,21 +324,19 @@ def clean_files():
             keys_to_delete.append(file_path)
             continue
         
-        # Special case for session module source
         if binding == "__temp__python_source_editor":
             continue
         
-        # Check if binding object is still valid
         is_valid = False
         try:
             if isinstance(binding, hou.Tool):
-                binding.filePath()  # Test if tool is valid
+                binding.filePath()
                 is_valid = True
             elif isinstance(binding, hou.Parm):
-                binding.parmTemplate()  # Test if parm is valid
+                binding.parmTemplate()
                 is_valid = True
             elif isinstance(binding, hou.Node):
-                binding.path()  # Test if node is valid
+                binding.path()
                 is_valid = True
         except (hou.ObjectWasDeleted, AttributeError, RuntimeError, TypeError):
             is_valid = False
@@ -348,7 +345,6 @@ def clean_files():
             remove_file_from_watcher(file_path)
             keys_to_delete.append(file_path)
     
-    # Remove invalid entries
     for k in keys_to_delete:
         try:
             if k in bindings:
@@ -435,16 +431,12 @@ def add_watcher(selection, type_="parm"):
         parms_bindings = hou.session.PARMS_BINDINGS
     if not file_path in parms_bindings.keys():
         parms_bindings[file_path] = selection
-        # Register deletion callbacks for automatic cleanup
         if type_ == "python_node" or "extra_section|" in type_:
             selection.addEventCallback((hou.nodeEventType.BeingDeleted,),
                                        _node_deleted)
         elif type_ == "parm":
-            # Register callback on the node containing the parm
-            # Capture file_path in closure to avoid issues with deleted parm
             node = selection.node()
             if node:
-                # Capture file_path in closure
                 captured_file_path = file_path
                 def _node_deleted_handler(*args, **kwargs):
                     remove_file_from_watcher(captured_file_path, delete_file=True)
