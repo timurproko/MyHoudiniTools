@@ -225,8 +225,10 @@
 		["kinefx::Sop/usdskinimport", "tabbed_left"],
 
 		["Object/null", "circle"],
-
 		["Sop/null", "circle"],
+		["Dop/null", "circle"],
+		["Top/null", "circle"],
+		["Lop/null", "circle"],
 		["Sop/split", "box_rounded_45"],
 		["Sop/vex_switch", "diamond"],
 		["Sop/vex_wrangle", "wave"],
