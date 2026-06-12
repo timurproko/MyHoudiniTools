@@ -28,34 +28,53 @@ def _patch_utility_hotkey_system():
         if not os.path.exists(hotkeysfile):
             return
 
+        # Suppress upstream console spam.  utility_hotkey_system.__load_actions
+        # prints "Reloading hotkeys..." whenever module global showstatus is True.
+        # Keep it False permanently, including watcher-triggered reloads.
+        utility_hotkey_system.showstatus = False
+
         old_hotkeysfile = getattr(utility_hotkey_system, "hotkeysfile", None)
-        if os.path.abspath(str(old_hotkeysfile)) == hotkeysfile and getattr(
+        already_patched = os.path.abspath(str(old_hotkeysfile)) == hotkeysfile and getattr(
             utility_hotkey_system, "_mytools_patched_hotkeysfile", False
-        ):
-            return
+        )
 
         utility_hotkey_system.hotkeysfile = hotkeysfile
+
+        load_actions = getattr(utility_hotkey_system, "__load_actions", None)
+        if callable(load_actions) and not getattr(load_actions, "_mytools_quiet", False):
+            original_load_actions = load_actions
+
+            def quiet_load_actions(*args, **kwargs):
+                utility_hotkey_system.showstatus = False
+                try:
+                    return original_load_actions(*args, **kwargs)
+                finally:
+                    utility_hotkey_system.showstatus = False
+
+            quiet_load_actions._mytools_quiet = True
+            utility_hotkey_system.__load_actions = quiet_load_actions
+            load_actions = quiet_load_actions
 
         watcher = getattr(utility_hotkey_system, "fs_watcher", None)
         if watcher is not None:
             try:
+                try:
+                    watcher.fileChanged.disconnect()
+                except Exception:
+                    pass
                 for path in list(watcher.files()):
                     if os.path.basename(path).lower() == "hotkeys.csv":
                         watcher.removePath(path)
                 watcher.addPath(hotkeysfile)
+                if callable(load_actions):
+                    watcher.fileChanged.connect(load_actions)
             except Exception:
                 pass
 
-        load_actions = getattr(utility_hotkey_system, "__load_actions", None)
-        if callable(load_actions):
-            old_showstatus = getattr(utility_hotkey_system, "showstatus", None)
-            try:
-                utility_hotkey_system.showstatus = False
-                load_actions()
-            finally:
-                if old_showstatus is not None:
-                    utility_hotkey_system.showstatus = old_showstatus
+        if callable(load_actions) and not already_patched:
+            load_actions()
 
+        utility_hotkey_system.showstatus = False
         utility_hotkey_system._mytools_patched_hotkeysfile = True
     except Exception:
         pass
