@@ -854,8 +854,8 @@ mytools.openFile("/packages/MyTools/Houdini.keymap2.overrides")
                                 <label>Edit Network Hotkeys...</label>
                                 <scriptCode>
                                         <![CDATA[
-import mytools
-mytools.openFile("/packages/HotkeySystem/hotkeys.csv")
+import os
+os.startfile(r"E:\Git\MyHoudiniPackages\MyHoudiniTools\hotkeys.csv", 'open')
 ]]>
                                 </scriptCode>
                         </scriptItem>

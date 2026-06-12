@@ -1,6 +1,64 @@
 import hou
 import inspect
+import os
 import sys
+
+
+def _mytools_hotkeys_file():
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "hotkeys.csv"))
+
+
+def _patch_utility_hotkey_system():
+    """Make HotkeySystem read MyHoudiniTools/hotkeys.csv.
+
+    HotkeySystem's utility_hotkey_system.py normally resolves hotkeys.csv next to
+    the HotkeySystem package.  This patch keeps using the upstream package code,
+    but redirects its module-level hotkeysfile variable and file watcher to the
+    hotkeys.csv that lives in MyHoudiniTools.
+    """
+    try:
+        utility_hotkey_system = sys.modules.get("utility_hotkey_system")
+        if utility_hotkey_system is None:
+            try:
+                import utility_hotkey_system as utility_hotkey_system
+            except Exception:
+                return
+
+        hotkeysfile = _mytools_hotkeys_file()
+        if not os.path.exists(hotkeysfile):
+            return
+
+        old_hotkeysfile = getattr(utility_hotkey_system, "hotkeysfile", None)
+        if os.path.abspath(str(old_hotkeysfile)) == hotkeysfile and getattr(
+            utility_hotkey_system, "_mytools_patched_hotkeysfile", False
+        ):
+            return
+
+        utility_hotkey_system.hotkeysfile = hotkeysfile
+
+        watcher = getattr(utility_hotkey_system, "fs_watcher", None)
+        if watcher is not None:
+            try:
+                for path in list(watcher.files()):
+                    if os.path.basename(path).lower() == "hotkeys.csv":
+                        watcher.removePath(path)
+                watcher.addPath(hotkeysfile)
+            except Exception:
+                pass
+
+        load_actions = getattr(utility_hotkey_system, "__load_actions", None)
+        if callable(load_actions):
+            old_showstatus = getattr(utility_hotkey_system, "showstatus", None)
+            try:
+                utility_hotkey_system.showstatus = False
+                load_actions()
+            finally:
+                if old_showstatus is not None:
+                    utility_hotkey_system.showstatus = old_showstatus
+
+        utility_hotkey_system._mytools_patched_hotkeysfile = True
+    except Exception:
+        pass
 
 
 def _patch_nodegraphhooks_ctrl_mmb():
@@ -169,6 +227,7 @@ def _patch_utility_generic():
                 utility_hotkey_system.showNodeMenuWithoutSelect = showNodeMenuWithoutSelect
             if hasattr(sys.modules[__name__], 'selectDisplayNearestNodeInEditor'):
                 utility_hotkey_system.selectDisplayNearestNodeInEditor = selectDisplayNearestNodeInEditor
+            _patch_utility_hotkey_system()
 
 
 _initialized = False
@@ -188,6 +247,7 @@ def init():
     except Exception as e:
         pass
 
+    _patch_utility_hotkey_system()
     _patch_nodegraphhooks_ctrl_mmb()
     
     _initialized = True
