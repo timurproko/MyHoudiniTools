@@ -1088,7 +1088,6 @@ def _shading_mode_sets_from_pairs(pairs):
 def toggle_shading_mode():
     viewer = get_scene_viewer_under_cursor()
     if not viewer:
-        hou.ui.displayMessage("No Scene Viewer under cursor.")
         return
 
     viewport = viewer.curViewport()
@@ -1127,7 +1126,6 @@ def toggle_shading_mode():
 def toggle_shading_mode_pair():
     viewer = get_scene_viewer_under_cursor()
     if not viewer:
-        hou.ui.displayMessage("No Scene Viewer under cursor.")
         return
 
     viewport = viewer.curViewport()
