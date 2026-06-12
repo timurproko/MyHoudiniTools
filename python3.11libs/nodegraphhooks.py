@@ -56,18 +56,6 @@ def _showNodeMenuNearestNodeInEditor_fallback():
     except Exception:
         pass
 
-def _selectDisplayNearestNodeInEditor_fallback(nearestNode=None):
-    try:
-        editor = hou.ui.paneTabUnderCursor()
-        if not editor or editor.type() != hou.paneTabType.NetworkEditor:
-            return
-        if nearestNode is None:
-            nearestNode = findNearestNode(editor)
-        if nearestNode and isinstance(nearestNode, hou.Node):
-            nearestNode.setSelected(True, clear_all_selected=True)
-    except Exception:
-        pass
-
 class _UtilityGenericProxy(object):
     def getUnshiftedKey(self, key, modifierstate):
         if _utility_generic and hasattr(_utility_generic, "getUnshiftedKey"):
@@ -85,13 +73,6 @@ class _UtilityGenericProxy(object):
                 pass
         return _showNodeMenuNearestNodeInEditor_fallback()
 
-    def selectDisplayNearestNodeInEditor(self, nearestNode=None):
-        if _utility_generic and hasattr(_utility_generic, "selectDisplayNearestNodeInEditor"):
-            try:
-                return _utility_generic.selectDisplayNearestNodeInEditor(nearestNode=nearestNode)
-            except Exception:
-                pass
-        return _selectDisplayNearestNodeInEditor_fallback(nearestNode=nearestNode)
 
 utility_generic = _UtilityGenericProxy()
 
@@ -477,6 +458,31 @@ def _shouldBlockDiveOnCtrlLMBDown(uievent):
         return False
 
 
+def _openNodeMenuFromUIEvent(uievent):
+    try:
+        editor = getattr(uievent, "editor", None)
+        if not editor or editor.type() != hou.paneTabType.NetworkEditor:
+            return False
+
+        node = None
+        selected = getattr(uievent, "selected", None)
+        if selected is not None:
+            item = getattr(selected, "item", None)
+            if isinstance(item, hou.Node) and not _isNonNodeThing(item):
+                node = item
+
+        if node is None:
+            node = findNearestNode(editor)
+
+        if node and isinstance(node, hou.Node):
+            editor.openNodeMenu(node=node)
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
 def createEventHandler(uievent, pending_actions):
     if not isinstance(uievent.editor, hou.NetworkEditor):
         return None, False
@@ -510,36 +516,14 @@ def createEventHandler(uievent, pending_actions):
 
     if use_custom_mouse_actions and uievent.eventtype == 'mousedown':
         if uievent.mousestate.rmb:
-            node = uievent.selected.item
-            if (
-                node
-                and not isinstance(node, hou.NodeConnection)
-                and not isinstance(node, hou.NetworkDot)
-                and not isinstance(node, hou.NetworkBox)
-                and not isinstance(node, hou.OpSubnetIndirectInput)
-                and not isinstance(node, hou.StickyNote)
-            ):
-                category = node.type().category().name()
-                if category in hou.nodeTypeCategories().keys() and category != "Vop":
-                    if uievent.modifierstate.alt:
-                        utility_generic.showNodeMenuNearestNodeInEditor()
-                    else:
-                        utility_generic.selectDisplayNearestNodeInEditor(nearestNode=node)
-
-                    return None, True
+            if _openNodeMenuFromUIEvent(uievent):
+                return None, True
 
         elif uievent.mousestate.mmb:
             if uievent.modifierstate.shift:
                 try:
                     if _utility_ui and hasattr(_utility_ui, "diveInsideNearestNode"):
                         _utility_ui.diveInsideNearestNode()
-                        return None, True
-                except Exception:
-                    pass
-            elif uievent.modifierstate.ctrl:
-                try:
-                    if _utility_ui and hasattr(_utility_ui, "jumpUpOneLevel"):
-                        _utility_ui.jumpUpOneLevel()
                         return None, True
                 except Exception:
                     pass
