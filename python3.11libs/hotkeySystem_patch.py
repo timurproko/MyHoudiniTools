@@ -58,6 +58,29 @@ def flagSelectNearestNode(uievent, flag, select=0):
             nearestNode.setSelected(True, clear_all_selected=True)
 
 
+def flagSetNearestNode(uievent, flag, select=0):
+    """Set a flag ON for the nearest node (no toggle).
+
+    Special case for SOPs: when setting Visible, also set Render.
+    """
+    import hou
+    from utility_generic import findNearestNode
+
+    with hou.undos.group("Set Flag On Nearest Node"):
+        editor = uievent.editor
+        nearestNode = findNearestNode(editor)
+        if nearestNode:
+            nearestNode.setGenericFlag(flag, True)
+            try:
+                is_sop = nearestNode.type().category() == hou.sopNodeTypeCategory()
+                if flag == hou.nodeFlag.Visible and is_sop:
+                    nearestNode.setRenderFlag(True)
+            except Exception:
+                pass
+        if select == 1 and nearestNode:
+            nearestNode.setSelected(True, clear_all_selected=True)
+
+
 def flagSelectedNodes(uievent, flag):
     import hou
 
@@ -219,6 +242,7 @@ def _patch_utility_generic():
                 return
 
         utility_generic.flagSelectNearestNode = flagSelectNearestNode
+        utility_generic.flagSetNearestNode = flagSetNearestNode
         utility_generic.flagSelectedNodes = flagSelectedNodes
         utility_generic.showNodeMenuWithoutSelect = showNodeMenuWithoutSelect
         utility_generic.selectDisplayNearestNodeInEditor = selectDisplayNearestNodeInEditor
@@ -226,6 +250,7 @@ def _patch_utility_generic():
         utility_hotkey_system = sys.modules.get("utility_hotkey_system")
         if utility_hotkey_system is not None:
             utility_hotkey_system.flagSelectNearestNode = flagSelectNearestNode
+            utility_hotkey_system.flagSetNearestNode = flagSetNearestNode
             utility_hotkey_system.flagSelectedNodes = flagSelectedNodes
             utility_hotkey_system.showNodeMenuWithoutSelect = showNodeMenuWithoutSelect
             utility_hotkey_system.selectDisplayNearestNodeInEditor = selectDisplayNearestNodeInEditor
