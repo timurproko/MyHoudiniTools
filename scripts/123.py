@@ -1,4 +1,5 @@
 import hdefereval, os, hou
+import fxhoudinimcp_patch  # noqa: F401 - suppresses selected original FXHoudini-MCP logs only
 import mytools, hotkeySystem_patch
 
 
