@@ -69,6 +69,25 @@ def flagSetNearestNodeExclusive(uievent, flag, select=0):
             nearestNode.setSelected(True, clear_all_selected=True)
 
 
+def flagSelectedNodes(uievent, flag):
+    import hou
+    with hou.undos.group("Flag Selected Nodes"):
+        editor = uievent.editor
+        if editor.pwd().isEditable():
+            selNodes = hou.selectedNodes()
+            nodes_to_operate = []
+            for n in selNodes:
+                if not n.isGenericFlagSet(flag):
+                    nodes_to_operate.append(n)
+
+            if len(nodes_to_operate) > 0:
+                for n in nodes_to_operate:
+                    n.setGenericFlag(flag, True)
+            else:
+                for n in selNodes:
+                    n.setGenericFlag(flag, not n.isGenericFlagSet(flag))
+
+
 # ---------------------------------------------------------------------------
 # Patchers
 # ---------------------------------------------------------------------------
@@ -111,12 +130,14 @@ def _patch_utility_generic():
         utility_generic.flagSelectNearestNode = flagSelectNearestNode
         utility_generic.flagSetNearestNode = flagSetNearestNode
         utility_generic.flagSetNearestNodeExclusive = flagSetNearestNodeExclusive
+        utility_generic.flagSelectedNodes = flagSelectedNodes
 
         utility_hotkey_system = sys.modules.get("utility_hotkey_system")
         if utility_hotkey_system is not None:
             utility_hotkey_system.flagSelectNearestNode = flagSelectNearestNode
             utility_hotkey_system.flagSetNearestNode = flagSetNearestNode
             utility_hotkey_system.flagSetNearestNodeExclusive = flagSetNearestNodeExclusive
+            utility_hotkey_system.flagSelectedNodes = flagSelectedNodes
     except Exception:
         pass
 

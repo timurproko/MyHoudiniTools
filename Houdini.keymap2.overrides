@@ -69,7 +69,7 @@
 				},
 				{
 					"action":"h.create_obj_merge",
-					"keys":["Alt+F12"
+					"keys":["Alt+0"
 					]
 				},
 				{
@@ -174,17 +174,12 @@
 				},
 				{
 					"action":"h.switch_chanedit",
-					"keys":["Alt+5"
-					]
-				},
-				{
-					"action":"h.switch_console",
-					"keys":["Alt+0"
+					"keys":["Ctrl+Shift+5"
 					]
 				},
 				{
 					"action":"h.switch_geosheet",
-					"keys":["Alt+4"
+					"keys":["Ctrl+Shift+4"
 					]
 				},
 				{
@@ -196,17 +191,17 @@
 				},
 				{
 					"action":"h.switch_net",
-					"keys":["Alt+2"
+					"keys":["Ctrl+Shift+2"
 					]
 				},
 				{
 					"action":"h.switch_parm",
-					"keys":["Alt+3"
+					"keys":["Ctrl+Shift+3"
 					]
 				},
 				{
 					"action":"h.switch_sceneviewer",
-					"keys":["Alt+1"
+					"keys":["Ctrl+Shift+1"
 					]
 				},
 				{
@@ -708,27 +703,27 @@
 			"bindings":[
 				{
 					"action":"h.pane.gview.state.view.load_quick1",
-					"keys":["Ctrl+Shift+1"
+					"keys":["Alt+1"
 					]
 				},
 				{
 					"action":"h.pane.gview.state.view.load_quick2",
-					"keys":["Ctrl+Shift+2"
+					"keys":["Alt+2"
 					]
 				},
 				{
 					"action":"h.pane.gview.state.view.load_quick3",
-					"keys":["Ctrl+Shift+3"
+					"keys":["Alt+3"
 					]
 				},
 				{
 					"action":"h.pane.gview.state.view.load_quick4",
-					"keys":["Ctrl+Shift+4"
+					"keys":["Alt+4"
 					]
 				},
 				{
 					"action":"h.pane.gview.state.view.load_quick5",
-					"keys":["Ctrl+Shift+5"
+					"keys":["Alt+5"
 					]
 				},
 				{
@@ -958,27 +953,27 @@
 				},
 				{
 					"action":"h.pane.wsheet.jump_mark_1",
-					"keys":["Ctrl+Shift+1"
+					"keys":["Alt+1"
 					]
 				},
 				{
 					"action":"h.pane.wsheet.jump_mark_2",
-					"keys":["Ctrl+Shift+2"
+					"keys":["Alt+2"
 					]
 				},
 				{
 					"action":"h.pane.wsheet.jump_mark_3",
-					"keys":["Ctrl+Shift+3"
+					"keys":["Alt+3"
 					]
 				},
 				{
 					"action":"h.pane.wsheet.jump_mark_4",
-					"keys":["Ctrl+Shift+4"
+					"keys":["Alt+4"
 					]
 				},
 				{
 					"action":"h.pane.wsheet.jump_mark_5",
-					"keys":["Ctrl+Shift+5"
+					"keys":["Alt+5"
 					]
 				},
 				{
