@@ -822,24 +822,6 @@ mytools.review_redshift()
 
                         <separatorItem/>
 
-                        <subMenu id="mytools_install_options">
-                                <label>Install</label>
-
-                                <scriptItem id="update_mops">
-                                        <label>Update MOPs...</label>
-                                        <scriptCode>
-                                                <![CDATA[
-import mops_updater
-# launch ui
-win = mops_updater.MOPsUpdateWindow(hou.ui.mainQtWindow())
-]]>
-                                        </scriptCode>
-                                </scriptItem>
-
-                        </subMenu>
-
-                        <separatorItem/>
-
                         <scriptItem id="edit_key_overrides">
                                 <label>Edit Keymap Overrides...</label>
                                 <scriptCode>
