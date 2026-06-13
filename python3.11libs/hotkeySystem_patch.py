@@ -110,9 +110,22 @@ def _patch_utility_hotkey_system():
         utility_hotkey_system.hotkeysfile = hotkeysfile
         utility_hotkey_system.showstatus = False
 
-        load_actions = getattr(utility_hotkey_system, "__load_actions", None)
+        load_actions = getattr(utility_hotkey_system, "_utility_hotkey_system__load_actions", None)
+        if load_actions is None:
+            load_actions = getattr(utility_hotkey_system, "__load_actions", None)
         if callable(load_actions):
             load_actions()
+
+        # Re-point the QFileSystemWatcher at our hotkeys.csv so live edits
+        # trigger __load_actions without a Houdini relaunch.
+        try:
+            watcher = getattr(utility_hotkey_system, "fs_watcher", None)
+            if watcher is not None:
+                for p in list(watcher.files()):
+                    watcher.removePath(p)
+                watcher.addPath(hotkeysfile)
+        except Exception:
+            pass
     except Exception:
         pass
 
