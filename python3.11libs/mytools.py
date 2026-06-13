@@ -1,8 +1,7 @@
-import os, hou, toolutils, hdefereval, re
+import os, hou, toolutils, re
 
 
 _last_matcap_index = -1
-_last_selected_node_path = None
 _asset_bar_sync_cb = None
 _asset_bar_sync_last = None
 
@@ -19,15 +18,21 @@ _SHADING_MODE_PAIRS = [
 ]
 
 
+def _scene_viewer_viewports():
+    try:
+        return toolutils.sceneViewer().viewports()
+    except Exception:
+        return []
+
+
 def _build_desktop_cache_lazy():
-    """Build desktop cache lazily on first access - stores names and desktop objects."""
     try:
         cache = getattr(hou.session, _DESKTOP_CACHE_KEY, None)
         if cache and cache.get("names") and cache.get("map"):
             return cache
     except Exception:
         pass
-    
+
     try:
         desktops = list(hou.ui.desktops())
         desktop_map = {d.name(): d for d in desktops}
@@ -45,18 +50,15 @@ def _build_desktop_cache_lazy():
 
 
 def build_desktop_cache():
-    """Build desktop cache - kept for backwards compatibility, now uses lazy loading."""
     _build_desktop_cache_lazy()
 
 
 def get_desktop_names():
-    """Get desktop names - uses lazy cache."""
     cache = _build_desktop_cache_lazy()
     return cache.get("names", [])
 
 
 def get_desktop_by_name(name):
-    """Get desktop object by name - uses lazy cache."""
     cache = _build_desktop_cache_lazy()
     return cache.get("map", {}).get(name)
 
@@ -73,16 +75,15 @@ def decode_rgb(s):
 
 
 def find_folders_recursive(entry, found_folders, target_names=None, target_labels=None):
-    """Recursively search for folders matching target names or labels."""
     if target_names is None:
         target_names = []
     if target_labels is None:
         target_labels = []
-    
+
     if isinstance(entry, (hou.FolderParmTemplate, hou.FolderSetParmTemplate)):
         entry_name = entry.name()
         entry_label = (entry.label() or "").lower()
-        
+
         matches = False
         if target_names:
             for target_name in target_names:
@@ -94,10 +95,10 @@ def find_folders_recursive(entry, found_folders, target_names=None, target_label
                 if target_label in entry_label:
                     matches = True
                     break
-        
+
         if matches:
             found_folders.append(entry)
-        
+
         for sub_entry in entry.parmTemplates():
             find_folders_recursive(sub_entry, found_folders, target_names, target_labels)
 
@@ -117,10 +118,6 @@ def remove_c_like_comments(text):
 
 
 def session_set(key):
-    """
-    Return a persistent set stored on hou.session under `key`.
-    Creates it if missing. Falls back to a temporary set on failure.
-    """
     try:
         reg = getattr(hou.session, key, None)
         if isinstance(reg, set):
@@ -133,10 +130,6 @@ def session_set(key):
 
 
 def defer(fn):
-    """
-    Execute `fn` on the next UI cycle if possible (hdefereval / event loop callback),
-    otherwise call immediately. Safe to call in headless contexts.
-    """
     try:
         if hasattr(hou, "ui") and hou.ui is not None:
             try:
@@ -148,7 +141,7 @@ def defer(fn):
 
             holder = {"cb": None}
 
-            def _cb():
+            def deferred_callback():
                 try:
                     fn()
                 finally:
@@ -157,8 +150,8 @@ def defer(fn):
                     except Exception:
                         pass
 
-            holder["cb"] = _cb
-            hou.ui.addEventLoopCallback(_cb)
+            holder["cb"] = deferred_callback
+            hou.ui.addEventLoopCallback(deferred_callback)
         else:
             fn()
     except Exception:
@@ -166,9 +159,6 @@ def defer(fn):
 
 
 def set_node_color(node, color):
-    """
-    Set node color accepting either hou.Color or (r,g,b) tuple.
-    """
     try:
         if isinstance(color, hou.Color):
             node.setColor(color)
@@ -358,11 +348,11 @@ def toggle_toolbar(toolbar_name, state=-1):
 
 def get_asset_def_toolbar_state():
     state = hou.getPreference('parmdialog.asset_bar.val')
-    
+
     if state is None or state == '':
         state = '1'
         hou.setPreference('parmdialog.asset_bar.val', state)
-    
+
     return str(state).strip()
 
 
@@ -395,12 +385,12 @@ def start_asset_bar_menu_sync():
 
     sync_asset_bar_menu_global(force=True)
 
-    def _cb():
+    def asset_bar_callback():
         sync_asset_bar_menu_global(force=False)
 
-    _asset_bar_sync_cb = _cb
+    _asset_bar_sync_cb = asset_bar_callback
     try:
-        hou.ui.addEventLoopCallback(_cb)
+        hou.ui.addEventLoopCallback(asset_bar_callback)
     except Exception:
         _asset_bar_sync_cb = None
 
@@ -422,74 +412,52 @@ def set_asset_def_toolbar_state(state):
 
 def toggle_pin():
     paneTab = hou.ui.paneTabUnderCursor()
-    if paneTab:
-            if paneTab.hasNetworkControls() == True:
-                    b = paneTab.isPin()
-                    b = not b
-                    paneTab.setPin(b)
+    if paneTab and paneTab.hasNetworkControls():
+        paneTab.setPin(not paneTab.isPin())
 
 
 def toggle_bg():
-    paneTabs = hou.ui.curDesktop().paneTabs()
-    for paneTab in paneTabs:
-        if paneTab.type() == hou.paneTabType.SceneViewer:
+    color_dict = {
+        'Dark': hou.viewportColorScheme.Dark,
+        'Grey': hou.viewportColorScheme.Grey,
+        'Light': hou.viewportColorScheme.Light,
+    }
+    color_names = list(color_dict.keys())
 
-            sv = toolutils.sceneViewer()
-            viewports = sv.viewports()
-            for cv in viewports:
-                st = cv.settings()
-                color = st.colorScheme()
-                color_name = str(color).split('.')[-1]
-
-                color_dict = {
-                    'Dark':  hou.viewportColorScheme.Dark,
-                    'Grey':  hou.viewportColorScheme.Grey,
-                    'Light': hou.viewportColorScheme.Light,
-                }
-
-                next_color_name = list(color_dict.keys())[(list(color_dict.keys()).index(color_name) + 1) % len(color_dict)]
-                st.setColorScheme(color_dict[next_color_name])
+    for viewport in _scene_viewer_viewports():
+        settings = viewport.settings()
+        color_name = str(settings.colorScheme()).split('.')[-1]
+        if color_name not in color_dict:
+            color_name = color_names[0]
+        next_color_name = color_names[(color_names.index(color_name) + 1) % len(color_names)]
+        settings.setColorScheme(color_dict[next_color_name])
 
 
-def set_display_material(intensity, dir, defmatdiff, defmatspec, defmatamb, defmatemit):
-    paneTabs = hou.ui.curDesktop().paneTabs()
-    for paneTab in paneTabs:
-        if paneTab.type() == hou.paneTabType.SceneViewer:
-            sv = toolutils.sceneViewer()
-            viewports = sv.viewports()
-            for cv in viewports:
-                st = cv.settings()
-                st.setUVMapTexture(uv)
-                st.setUVMapScale(scale)
-                st.setHeadlightIntensity(intensity)
-                st.setHeadlightDirection(dir)
-                st.setDefaultMaterialDiffuse(defmatdiff)
-                st.setDefaultMaterialSpecular(defmatspec)
-                st.setDefaultMaterialAmbient(defmatamb)
-                st.setDefaultMaterialEmission(defmatemit)
+def set_display_material(intensity, dir, defmatdiff, defmatspec, defmatamb, defmatemit, filepath=None, scale=None):
+    for viewport in _scene_viewer_viewports():
+        settings = viewport.settings()
+        if filepath is not None:
+            settings.setUVMapTexture(filepath)
+        if scale is not None:
+            settings.setUVMapScale(scale)
+        settings.setHeadlightIntensity(intensity)
+        settings.setHeadlightDirection(dir)
+        settings.setDefaultMaterialDiffuse(defmatdiff)
+        settings.setDefaultMaterialSpecular(defmatspec)
+        settings.setDefaultMaterialAmbient(defmatamb)
+        settings.setDefaultMaterialEmission(defmatemit)
 
 
 def set_display_uv(filepath, scale):
-    paneTabs = hou.ui.curDesktop().paneTabs()
-    for paneTab in paneTabs:
-        if paneTab.type() == hou.paneTabType.SceneViewer:
-            sv = toolutils.sceneViewer()
-            viewports = sv.viewports()
-            for cv in viewports:
-                st = cv.settings()
-                st.setUVMapTexture(filepath)
-                st.setUVMapScale(scale)
+    for viewport in _scene_viewer_viewports():
+        settings = viewport.settings()
+        settings.setUVMapTexture(filepath)
+        settings.setUVMapScale(scale)
 
 
 def set_display_matcap(filepath):
-    paneTabs = hou.ui.curDesktop().paneTabs()
-    for paneTab in paneTabs:
-        if paneTab.type() == hou.paneTabType.SceneViewer:
-            sv = toolutils.sceneViewer()
-            viewports = sv.viewports()
-            for cv in viewports:
-                st = cv.settings()
-                st.setDefaultMaterialMatCapFile(filepath)
+    for viewport in _scene_viewer_viewports():
+        viewport.settings().setDefaultMaterialMatCapFile(filepath)
 
 
 def toggle_matcaps_in_directory(directory):
@@ -513,20 +481,20 @@ def preview_output():
     if not hou.selectedNodes():
         return
     curnode = hou.selectedNodes()[0]
-    
-    if curnode.type().category().name() not in ['Sop', 'Vop', 'Dop', 'Lop', 'Chop'] or curnode.type().name() == 'subnetconnector': 
+
+    if curnode.type().category().name() not in ['Sop', 'Vop', 'Dop', 'Lop', 'Chop'] or curnode.type().name() == 'subnetconnector':
         return
     result = None
-    if curnode.type().name() == 'bind' and curnode.parm("exportparm") and curnode.parm("exportparm").eval() == 1: 
+    if curnode.type().name() == 'bind' and curnode.parm("exportparm") and curnode.parm("exportparm").eval() == 1:
         return
 
-    if curnode.type().name() in ['mtlxstandard_surface', 'mtlxsurface']: 
+    if curnode.type().name() in ['mtlxstandard_surface', 'mtlxsurface']:
         for node in curnode.parent().children():
             if node.type().name() == 'subnetconnector' and node.parm("parmtype").eval() == 24 or node.type().name() == 'mtlxsurfacematerial':
                 result = node
                 break
 
-    if curnode.type().name() == 'mtlxdisplacement': 
+    if curnode.type().name() == 'mtlxdisplacement':
         for node in curnode.parent().children():
             if node.type().name() == 'subnetconnector' and node.parm("parmtype").eval() == 25:
                 result = node
@@ -535,7 +503,7 @@ def preview_output():
                 node.setInput(1, curnode, 0)
                 break
 
-    if curnode.type().name() == 'mtlxsurfacematerial': 
+    if curnode.type().name() == 'mtlxsurfacematerial':
         for node in curnode.parent().children():
             if node.type().name() == 'suboutput':
                 result = node
@@ -548,7 +516,7 @@ def preview_output():
                 break
             elif node.type().name() in ['geometryvopoutput', 'volumevopoutput', 'output', 'mtlxstandard_surface']:
                 result = node
-    
+
     if result:
         if result.inputConnections():
             for input in result.inputs():
@@ -561,9 +529,9 @@ def preview_color():
     if not hou.selectedNodes():
         return
     curnode=hou.selectedNodes()[0]
-    if  curnode.type().category().name()!='Vop': 
+    if  curnode.type().category().name()!='Vop':
         return
-    if  curnode.type().name()=='geometryvopoutput': 
+    if  curnode.type().name()=='geometryvopoutput':
         return
     result = None
     for node in curnode.parent().children():
@@ -595,7 +563,7 @@ def review_redshift():
                     node.setColor(hou.Color((0.8, 0.8, 0.8)))
         else:
 
-            if not curnode or curnode.type().category().name() != 'Vop': 
+            if not curnode or curnode.type().category().name() != 'Vop':
                 print("No Shop or Mat selected!")
                 continue
 
@@ -644,23 +612,21 @@ def preview_console():
 
 
 def preview_uv():
-    selNodes = hou.selectedNodes()
     quickshade = None
-    for curnode in selNodes:
-            if curnode.type().name() == 'uvquickshade':
-                    quickshade=curnode
-                    break
+    for curnode in hou.selectedNodes():
+        if curnode.type().name() == 'uvquickshade':
+            quickshade = curnode
+            break
     if quickshade:
-            file = quickshade.parm('texture').evalAsString()
+        file = quickshade.parm('texture').evalAsString()
     else:
-            file=hou.ui.selectFile(file_type=hou.fileType.Image)
+        file = hou.ui.selectFile(file_type=hou.fileType.Image)
     scene_viewer = toolutils.sceneViewer()
-    vs = scene_viewer.curViewport().settings()
-    vs.backgroundImage(hou.viewportBGImageView.UV, 0).setImageFile(file)
+    settings = scene_viewer.curViewport().settings()
+    settings.backgroundImage(hou.viewportBGImageView.UV, 0).setImageFile(file)
 
 
 def switch_to_pane(paneType, showNetworkControls=0):
-    """Switch the pane under the cursor to a specified type."""
     pane = hou.ui.paneUnderCursor()
     if pane:
         paneTab = pane.currentTab()
@@ -682,7 +648,6 @@ def switch_to_pane(paneType, showNetworkControls=0):
 
 
 def switch_to_pane_toggleViewers():
-    """Toggle between Scene Viewer, Channel Viewer, and Compositor Viewer."""
     paneTab = hou.ui.paneTabUnderCursor()
 
     if not paneTab:
@@ -719,16 +684,10 @@ def switch_to_pythonPane(pythonPaneType, showNetworkControls=1):
 
 
 def select_parameter_tab(node, tab_index=0):
-    """Find the first tabs folder and select the specified tab index for the given node.
-    
-    Args:
-        node: The Houdini node whose parameter tabs to switch
-        tab_index: The index of the tab to select (default: 0 for first tab)
-    """
     try:
         if node is None:
             return
-        
+
         ptg = node.parmTemplateGroup()
         if ptg is None:
             return
@@ -755,7 +714,6 @@ def select_parameter_tab(node, tab_index=0):
         pt.set((tab_index,))
     except Exception:
         pass
-        paneTab.showNetworkControls(showNetworkControls)
 
 
 def switch_to_tab(tabIndex, isDetailsView=False):
@@ -852,11 +810,11 @@ def create_obj_merge(nodes=None, name=None):
 
     if nodes is None:
         nodes = hou.selectedNodes()
-    
+
     if not nodes:
         return
-    
-    if nodes[0].type().category().name() not in ['Sop']: 
+
+    if nodes[0].type().category().name() not in ['Sop']:
         return
 
     for node in nodes:
@@ -895,7 +853,7 @@ def toggle_sim():
     elif mode == 1:
             hou.setSimulationEnabled(0)
             toggle_axiom_sim(0)
-            
+
 
 
 def is_axiom_node(node):
@@ -911,7 +869,7 @@ def toggle_axiom_sim(value = None):
         pwds = [ pwd ]
     else:
         pwds = [ pwd for pwd in hou.selectedNodes() if pwd.type().name() == "geo" and pwd.numItems(hou.networkItemType.Node) ]
-    
+
     with hou.RedrawBlock() as rb:
         for pwd in pwds:
             for node in pwd.children()[::-1]:
@@ -923,8 +881,6 @@ def toggle_axiom_sim(value = None):
 
 
 def ctrl_select():
-    global _last_selected_node_path
-    
     ctrl_path = hou.getenv('CTRL_NODE')
     if not ctrl_path:
         return
@@ -936,9 +892,9 @@ def ctrl_select():
     ctx = hou.ui.paneTabOfType(hou.paneTabType.NetworkEditor)
     if not ctx:
         return
-    
+
     selected_nodes = [n for n in hou.selectedNodes() if n != ctrl_node]
-    
+
     if ctrl_node.isSelected():
         if selected_nodes:
             ctrl_node.setSelected(False)
@@ -948,11 +904,9 @@ def ctrl_select():
         for n in ctx.pwd().children():
             n.setSelected(False)
         ctrl_node.setSelected(True, clear_all_selected=True)
-        _last_selected_node_path = None
 
 
-def open_floating_pane(type, network = 0, pos = (), size = ()):
-    paneTab = hou.ui.paneTabUnderCursor()
+def open_floating_pane(type, network=0, pos=(), size=()):
     paneTab = hou.ui.curDesktop().createFloatingPaneTab(type, pos, size)
     if not network:
         toggle_ui_network(paneTab, 0)
@@ -961,16 +915,15 @@ def open_floating_pane(type, network = 0, pos = (), size = ()):
 def toggle_ui_network(paneTab = None, b = -1):
     if not paneTab:
         paneTab = hou.ui.paneTabUnderCursor()
-    if paneTab:
-            if b == -1:
-                if paneTab.hasNetworkControls() == True:
-                        b = paneTab.isShowingNetworkControls()
-                        b = not b
-                        paneTab.showNetworkControls(b)
-            if b == 0:
-                paneTab.showNetworkControls(0)
-            if b == 1:
-                paneTab.showNetworkControls(1)
+    if not paneTab:
+        return
+    if b == -1:
+        if paneTab.hasNetworkControls():
+            paneTab.showNetworkControls(not paneTab.isShowingNetworkControls())
+    elif b == 0:
+        paneTab.showNetworkControls(0)
+    elif b == 1:
+        paneTab.showNetworkControls(1)
 
 
 def toggle_ui_desktops():
@@ -981,15 +934,14 @@ def toggle_ui_desktops():
 
 
 def toggle_desktops():
-    """Toggle to next desktop and update keymap - uses lazy cache."""
     try:
         cache = _build_desktop_cache_lazy()
         desktop_names = cache.get("names", [])
         desktop_map = cache.get("map", {})
-        
+
         if not desktop_names:
             return
-        
+
         current_desktop = hou.ui.curDesktop()
         current_desktop_name = current_desktop.name()
 
@@ -1006,7 +958,7 @@ def toggle_desktops():
         next_index = (current_index + 1) % len(desktop_names)
         next_desktop_name = desktop_names[next_index]
         next_desktop = desktop_map.get(next_desktop_name)
-        
+
         if next_desktop:
             next_desktop.setAsCurrent()
             update_keymap()
@@ -1063,7 +1015,7 @@ def open_keymap_manager():
         splitter.widget(0).hide()
         dialog.setWindowTitle("Modeler Hotkeys (" + utils.MODELER_VERSION + ")")
 
-    def switch_keymap_houdini():          
+    def switch_keymap_houdini():
         splitter = dialog.findChild(utils.qtw.QSplitter)
         splitter.widget(0).hide()
         dialog.setWindowTitle("Houdini Hotkeys (" + HOUDINI_VERSION + ")")
@@ -1133,7 +1085,7 @@ def toggle_shading_mode_pair():
 
     display_sets = [
         settings.displaySet(hou.displaySetType.DisplayModel),
-        settings.displaySet(hou.displaySetType.SceneObject) 
+        settings.displaySet(hou.displaySetType.SceneObject)
     ]
 
     shading_pairs = [_BOUNDING_BOX_SHADING_PAIR, *_SHADING_MODE_PAIRS]
@@ -1152,7 +1104,7 @@ def toggle_shading_mode_pair():
 
 def convert_hda_to_subnet():
     selected_nodes = hou.selectedNodes()
-    
+
     if len(selected_nodes) != 1:
         print("Error: Please select exactly one HDA node.")
         return
@@ -1160,44 +1112,44 @@ def convert_hda_to_subnet():
     if not hda_node.type().definition():
         print("Error: Selected node is not an HDA.")
         return
-    
+
     try:
         parent = hda_node.parent()
         position = hda_node.position()
-        
+
         if not hda_node.isEditable():
             hda_node.allowEditingOfContents()
-        
+
         subnet = parent.createNode("subnet", hda_node.name() + "_subnet")
-        
+
         internal_nodes = hda_node.children()
         if not internal_nodes:
             print("Warning: HDA contains no nodes to extract.")
             subnet.destroy()
             return
-        
+
         node_map = {}
         node_positions = {}
         for node in internal_nodes:
             node_positions[node] = node.position()
             new_node = subnet.copyItems([node])[0]
             node_map[node] = new_node
-        
+
         for orig_node, new_node in node_map.items():
             if orig_node in node_positions:
                 new_node.setPosition(node_positions[orig_node])
-        
+
         for orig_node, new_node in node_map.items():
             for i, input_node in enumerate(orig_node.inputs()):
                 if input_node in node_map:
                     new_node.setInput(i, node_map[input_node])
-        
+
         parm_templates = hda_node.parmTemplateGroup().entries()
         new_parm_group = hou.ParmTemplateGroup()
         for parm_template in parm_templates:
             new_parm_group.append(parm_template)
         subnet.setParmTemplateGroup(new_parm_group)
-        
+
         for parm in hda_node.parms():
             parm_name = parm.name()
             subnet_parm = subnet.parm(parm_name)
@@ -1206,22 +1158,22 @@ def convert_hda_to_subnet():
                     subnet_parm.set(parm.eval())
                 except:
                     pass
-        
+
         subnet.setPosition(position)
-        
+
         for i, input_node in enumerate(hda_node.inputs()):
             subnet.setInput(i, input_node)
         for conn in hda_node.outputConnections():
             output_node = conn.outputNode()
             input_index = conn.inputIndex()
             output_node.setInput(input_index, subnet, conn.outputIndex())
-        
+
         hda_node.destroy()
-        
+
         subnet.setSelected(True)
-        
+
         print(f"HDA '{subnet.name()}' converted to subnet successfully!")
-        
+
     except Exception as e:
         print(f"Error converting HDA to subnet: {str(e)}")
         if subnet:
@@ -1229,7 +1181,6 @@ def convert_hda_to_subnet():
 
 
 def is_panel_active(panel_name):
-    """Check if a panel with the given name is currently active in any pane."""
     try:
         desktop = hou.ui.curDesktop()
         for pane in desktop.panes():
@@ -1243,7 +1194,6 @@ def is_panel_active(panel_name):
 
 
 def is_node_type(node, node_type_name, category_name=None):
-    """Check if a node matches the given type name."""
     try:
         if not node or not isinstance(node, hou.Node):
             return False
