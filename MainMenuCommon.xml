@@ -827,7 +827,7 @@ mytools.review_redshift()
                                 <scriptCode>
                                         <![CDATA[
 import mytools
-mytools.openFile("/packages/MyTools/Houdini.keymap2.overrides")
+mytools.openFile("Houdini.keymap2.overrides")
 ]]>
                                 </scriptCode>
                         </scriptItem>
@@ -836,18 +836,8 @@ mytools.openFile("/packages/MyTools/Houdini.keymap2.overrides")
                                 <label>Edit Network Hotkeys...</label>
                                 <scriptCode>
                                         <![CDATA[
-import os
-os.startfile(r"E:\Git\MyHoudiniPackages\MyHoudiniTools\hotkeys.csv", 'open')
-]]>
-                                </scriptCode>
-                        </scriptItem>
-
-                        <scriptItem id="edit_mytools_menu">
-                                <label>Edit This Menu...</label>
-                                <scriptCode>
-                                        <![CDATA[
 import mytools
-mytools.openFile("/packages/MyTools/MainMenuCommon.xml")
+mytools.openFile("hotkeys.csv")
 ]]>
                                 </scriptCode>
                         </scriptItem>

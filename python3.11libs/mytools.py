@@ -212,10 +212,26 @@ def createPrintNode(selectedNode, outputIndex):
         printNode.moveToGoodPosition(relative_to_inputs=True, move_inputs=False, move_outputs=True, move_unconnected=True)
 
 
+def package_folder():
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+
+def package_file(filePath):
+    filePath = hou.text.expandString(str(filePath))
+    normalized = filePath.replace("\\", "/")
+    package_prefix = "/packages/MyTools/"
+
+    if normalized.startswith(package_prefix):
+        filePath = normalized[len(package_prefix):]
+
+    if os.path.isabs(filePath):
+        return filePath
+
+    return os.path.join(package_folder(), filePath)
+
+
 def openFile(filePath):
-    home = hou.homeHoudiniDirectory()
-    file = home+filePath
-    os.startfile(file, 'open')
+    os.startfile(package_file(filePath), 'open')
 
 
 def toggle_stowbars_original(hidemainmenu=False):

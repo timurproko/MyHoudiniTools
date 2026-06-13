@@ -123,21 +123,6 @@
 					]
 				},
 				{
-					"action":"h.preview_color",
-					"keys":["F5"
-					]
-				},
-				{
-					"action":"h.preview_console",
-					"keys":["F3"
-					]
-				},
-				{
-					"action":"h.preview_output",
-					"keys":["Ctrl+F12"
-					]
-				},
-				{
 					"action":"h.python_shell",
 					"keys":["Ctrl+Shift+P"
 					]
