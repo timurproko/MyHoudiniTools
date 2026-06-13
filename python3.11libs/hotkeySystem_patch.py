@@ -49,6 +49,26 @@ def flagSetNearestNode(uievent, flag, select=0):
             nearestNode.setSelected(True, clear_all_selected=True)
 
 
+def flagSetNearestNodeExclusive(uievent, flag, select=0):
+    """Turn flag OFF on every sibling, then ON on the nearest node."""
+    import hou
+    from utility_generic import findNearestNode
+
+    with hou.undos.group("Set Flag Exclusive On Nearest Node"):
+        editor = uievent.editor
+        nearestNode = findNearestNode(editor)
+        if not nearestNode:
+            return
+        parent = nearestNode.parent()
+        if parent:
+            for child in parent.children():
+                if child is not nearestNode and child.isGenericFlagSet(flag):
+                    child.setGenericFlag(flag, False)
+        nearestNode.setGenericFlag(flag, True)
+        if select == 1:
+            nearestNode.setSelected(True, clear_all_selected=True)
+
+
 # ---------------------------------------------------------------------------
 # Patchers
 # ---------------------------------------------------------------------------
@@ -90,11 +110,13 @@ def _patch_utility_generic():
 
         utility_generic.flagSelectNearestNode = flagSelectNearestNode
         utility_generic.flagSetNearestNode = flagSetNearestNode
+        utility_generic.flagSetNearestNodeExclusive = flagSetNearestNodeExclusive
 
         utility_hotkey_system = sys.modules.get("utility_hotkey_system")
         if utility_hotkey_system is not None:
             utility_hotkey_system.flagSelectNearestNode = flagSelectNearestNode
             utility_hotkey_system.flagSetNearestNode = flagSetNearestNode
+            utility_hotkey_system.flagSetNearestNodeExclusive = flagSetNearestNodeExclusive
     except Exception:
         pass
 
