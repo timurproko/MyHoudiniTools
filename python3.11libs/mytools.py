@@ -219,10 +219,11 @@ def package_folder():
 def package_file(filePath):
     filePath = hou.text.expandString(str(filePath))
     normalized = filePath.replace("\\", "/")
-    package_prefix = "/packages/MyTools/"
-
-    if normalized.startswith(package_prefix):
-        filePath = normalized[len(package_prefix):]
+    package_name = os.path.basename(package_folder())
+    package_prefix = f"/packages/{package_name}/"
+    package_index = normalized.lower().find(package_prefix.lower())
+    if package_index != -1:
+        filePath = normalized[package_index + len(package_prefix):]
 
     if os.path.isabs(filePath):
         return filePath
@@ -476,8 +477,30 @@ def set_display_matcap(filepath):
         viewport.settings().setDefaultMaterialMatCapFile(filepath)
 
 
+def _is_matcap_shading_active():
+    matcap_modes = (hou.glShadingType.MatCap, hou.glShadingType.MatCapWire)
+
+    for viewport in _scene_viewer_viewports():
+        settings = viewport.settings()
+        display_sets = [
+            settings.displaySet(hou.displaySetType.DisplayModel),
+            settings.displaySet(hou.displaySetType.SceneObject)
+        ]
+        if any(display_set.shadedMode() in matcap_modes for display_set in display_sets):
+            return True
+
+    return False
+
+
 def toggle_matcaps_in_directory(directory):
     global _last_matcap_index
+    if not _is_matcap_shading_active():
+        return
+
+    directory = package_file(directory)
+    if not os.path.isdir(directory):
+        print(f"Matcap directory not found: {directory}")
+        return
     exr_files = [f for f in os.listdir(directory) if f.lower().endswith('.exr')]
     exr_files.sort()
 

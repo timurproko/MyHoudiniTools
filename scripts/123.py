@@ -45,8 +45,8 @@ hdefereval.executeDeferred(hideShelf)
 
 # Set UV Settings
 def setUVSettings():
-    mytools.set_display_uv("$HOUDINI_USER_PREF_DIR/packages/MyTools/lookdev/UVChecker_Empty_4K.png", 1)
-    mytools.set_display_matcap("$HOUDINI_USER_PREF_DIR/packages/MyTools/lookdev/matcaps/ceramic_lightbulb.exr")
+    mytools.set_display_uv(mytools.package_file("lookdev/UVChecker_Empty_4K.png"), 1)
+    mytools.set_display_matcap(mytools.package_file("lookdev/matcaps/ceramic_lightbulb.exr"))
 hdefereval.executeDeferred(setUVSettings)
 
 

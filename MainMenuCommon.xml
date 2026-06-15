@@ -466,9 +466,7 @@ mytools.toggle_shading_mode_pair()
                                         <scriptCode>
                                                 <![CDATA[
 import mytools
-HOUDINI_HOME = hou.homeHoudiniDirectory()
-MATCAP_FOLDER = "/packages/MyTools/lookdev/matcaps/"
-directory = HOUDINI_HOME + MATCAP_FOLDER
+directory = mytools.package_file("lookdev/matcaps")
 mytools.toggle_matcaps_in_directory(directory)
 ]]>
                                         </scriptCode>
