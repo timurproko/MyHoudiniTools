@@ -151,7 +151,7 @@ mytools.convert_hda_to_subnet()
                                 <separatorItem/>
 
                                 <scriptItem id="layout_preserve_chunks">
-                                        <label>Lay Out</label>
+                                        <label>Lay Out All</label>
                                         <scriptCode>
                                                 <![CDATA[
 import mytools

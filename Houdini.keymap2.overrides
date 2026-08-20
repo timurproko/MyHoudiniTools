@@ -103,6 +103,16 @@
 					]
 				},
 				{
+					"action":"h.layout_preserve_chunks",
+					"keys":["Shift+L"
+					]
+				},
+				{
+					"action":"h.layout_selected_preserve_chunks",
+					"keys":["L"
+					]
+				},
+				{
 					"action":"h.mat_palette",
 					"keys":[
 					]
@@ -959,6 +969,16 @@
 				{
 					"action":"h.pane.wsheet.jump_mark_5",
 					"keys":["Alt+5"
+					]
+				},
+				{
+					"action":"h.pane.wsheet.layout",
+					"keys":[
+					]
+				},
+				{
+					"action":"h.pane.wsheet.layout_all",
+					"keys":[
 					]
 				},
 				{

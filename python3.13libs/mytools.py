@@ -1035,11 +1035,17 @@ def _layout_graph(nodes, horizontal_spacing=1.0, vertical_spacing=1.0):
             )
 
         terminal_floor = min(target[node][1] for node in terminals)
+        layout_top = max(
+            target[node][1] + float(node.size()[1])
+            for node in component
+        )
+        layout_bottom = min(target[node][1] for node in component)
         layouts.append({
             "component": component,
             "terminals": terminals,
             "target": target,
             "terminal_floor": terminal_floor,
+            "layout_height": layout_top - layout_bottom,
             "original_center_x": original_center_x,
             "original_terminal_y": sum(original[node][1] for node in terminals) / len(terminals),
         })
@@ -1059,24 +1065,36 @@ def _layout_graph(nodes, horizontal_spacing=1.0, vertical_spacing=1.0):
     tile_gap = standard_tile_width * 1.875 * horizontal_spacing
 
     # Detect the artist's existing horizontal rows from output-node heights.
-    # Differences smaller than one full vanilla gap are normal hand-placement
-    # noise, not a new row. Truly packed rows remain farther apart because the
-    # row gap is measured between their complete bounding boxes.
-    row_tolerance = tile_gap
+    # Scale the tolerance with the compact branch height: nudging a tall branch
+    # no longer creates a row as easily as moving a one-node branch. Crossing
+    # one vanilla gap plus half the taller branch height is treated as an
+    # intentional row change.
     rows = []
     for layout in sorted(
         layouts,
         key=lambda item: (-item["original_terminal_y"], item["original_center_x"]),
     ):
-        if not rows or abs(layout["original_terminal_y"] - rows[-1]["reference_y"]) > row_tolerance:
+        starts_new_row = True
+        if rows:
+            row = rows[-1]
+            height_tolerance = max(layout["layout_height"], row["max_layout_height"]) * 0.5
+            row_tolerance = tile_gap + height_tolerance
+            starts_new_row = (
+                abs(layout["original_terminal_y"] - row["reference_y"])
+                > row_tolerance
+            )
+
+        if starts_new_row:
             rows.append({
                 "reference_y": layout["original_terminal_y"],
+                "max_layout_height": layout["layout_height"],
                 "layouts": [layout],
             })
         else:
-            rows[-1]["layouts"].append(layout)
-            values = [item["original_terminal_y"] for item in rows[-1]["layouts"]]
-            rows[-1]["reference_y"] = sum(values) / len(values)
+            row["layouts"].append(layout)
+            row["max_layout_height"] = max(row["max_layout_height"], layout["layout_height"])
+            values = [item["original_terminal_y"] for item in row["layouts"]]
+            row["reference_y"] = sum(values) / len(values)
 
     # Keep every row at its existing height, align all rows to one common left
     # edge, and use the exact vanilla component gap inside each row.
@@ -1153,16 +1171,18 @@ def _layout_network_nodes(selected_only=False):
     parent = editor.pwd()
     if selected_only:
         nodes = [node for node in hou.selectedNodes() if node.parent() == parent]
-        if not nodes:
-            hou.ui.setStatusMessage("Lay Out Selected: no nodes selected.", severity=hou.severityType.Warning)
-            return
-        undo_label = "Lay Out Selected (Preserve Chunks)"
+        if nodes:
+            undo_label = "Lay Out Selected (Preserve Chunks)"
+        else:
+            nodes = list(parent.children())
+            undo_label = "Lay Out All (Preserve Chunks)"
     else:
         nodes = list(parent.children())
-        if not nodes:
-            hou.ui.setStatusMessage("Lay Out: network is empty.")
-            return
-        undo_label = "Lay Out (Preserve Chunks)"
+        undo_label = "Lay Out All (Preserve Chunks)"
+
+    if not nodes:
+        hou.ui.setStatusMessage("Lay Out: network is empty.")
+        return
 
     with hou.undos.group(undo_label):
         moved, component_count, skipped_cycles = _layout_graph(nodes)
@@ -1179,7 +1199,7 @@ def layout_network_preserve_chunks():
 
 
 def layout_selected_preserve_chunks():
-    """Tidy selected nodes in place, leaving every other node untouched."""
+    """Tidy selected nodes, or all nodes when nothing is selected."""
     _layout_network_nodes(selected_only=True)
 
 
@@ -1377,7 +1397,11 @@ def update_keymap():
 
 
 def open_keymap_manager():
-    from hotkeys_prototype import mainwidget
+    try:
+        from hotkeys import mainwidget
+    except ImportError:
+        # Houdini versions before the Hotkey Manager left prototype status.
+        from hotkeys_prototype import mainwidget
     from modeler import utils
 
     _current_desktop = hou.ui.curDesktop().name()
