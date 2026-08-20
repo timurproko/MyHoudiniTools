@@ -9,9 +9,9 @@
                                 <label>Save Incremental</label>
                                 <scriptCode>
                                         <![CDATA[
+import importlib
 import versions
-from imp import reload
-reload(versions)
+importlib.reload(versions)
 versions.incsave()
 ]]>
 
@@ -144,6 +144,28 @@ mytools.ctrl_select()
                                                 <![CDATA[
 import mytools
 mytools.convert_hda_to_subnet()
+]]>
+                                        </scriptCode>
+                                </scriptItem>
+
+                                <separatorItem/>
+
+                                <scriptItem id="layout_preserve_chunks">
+                                        <label>Lay Out</label>
+                                        <scriptCode>
+                                                <![CDATA[
+import mytools
+mytools.layout_network_preserve_chunks()
+]]>
+                                        </scriptCode>
+                                </scriptItem>
+
+                                <scriptItem id="layout_selected_preserve_chunks">
+                                        <label>Lay Out Selected</label>
+                                        <scriptCode>
+                                                <![CDATA[
+import mytools
+mytools.layout_selected_preserve_chunks()
 ]]>
                                         </scriptCode>
                                 </scriptItem>

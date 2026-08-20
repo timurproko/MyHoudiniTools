@@ -62,7 +62,7 @@ SelectedPillTextColor:	        @PillTextColor          # menu pill text color (s
 SelectedPillOutlineColor:       @PillOutlineColor       # menu pill outline (selected viewport)
 SelectedPillBGColor:	        @PillBGColor            # menu pill background (selected vp)
 SelectedPillBGAlpha:	        ALPHA 0.75	            # menu pill background alpha (selected)
-PointColor:		                0.00 0.00 1.00	        # non-selected points and point info
+PointColor:		                0.00 1.00 1.00	        # non-selected points and point info
 
 
 
