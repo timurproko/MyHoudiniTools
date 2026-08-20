@@ -1,11 +1,18 @@
 import hdefereval, os, hou
-import fxhoudinimcp_patch  # noqa: F401 - suppresses selected original FXHoudini-MCP logs only
+import fxhoudinimcp_patch
+import networkeditor_overlay_color_patch
+import viewport_startup_prompt_patch
 import mytools, hotkeySystem_patch
 
 
 # Global Variables
 PRELOAD_DESKTOP_CACHE = False
 HOUDINI_USER_PREF_DIR = hou.homeHoudiniDirectory()
+
+
+# Apply startup UI fixes after Houdini creates its panes.
+hdefereval.executeDeferred(networkeditor_overlay_color_patch.install)
+hdefereval.executeDeferred(viewport_startup_prompt_patch.install)
 
 
 # Turn on AutoSave
